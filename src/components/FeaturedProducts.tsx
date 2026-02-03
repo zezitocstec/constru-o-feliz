@@ -1,5 +1,7 @@
 import { ShoppingCart, Star, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "@/hooks/use-toast";
 
 const products = [
   {
@@ -71,6 +73,22 @@ const products = [
 ];
 
 const FeaturedProducts = () => {
+  const { addItem } = useCart();
+
+  const handleAddToCart = (product: typeof products[0]) => {
+    addItem({
+      id: product.id,
+      name: product.name,
+      brand: product.brand,
+      price: product.price,
+      image: product.image,
+    });
+    toast({
+      title: "Produto adicionado!",
+      description: `${product.name} foi adicionado ao carrinho.`,
+    });
+  };
+
   return (
     <section id="produtos" className="py-20 bg-background">
       <div className="container mx-auto px-4">
@@ -114,6 +132,7 @@ const FeaturedProducts = () => {
                 <Button
                   size="icon"
                   className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all"
+                  onClick={() => handleAddToCart(product)}
                 >
                   <ShoppingCart className="w-5 h-5" />
                 </Button>

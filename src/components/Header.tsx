@@ -1,6 +1,8 @@
-import { Phone, MapPin, ShoppingCart, Menu, X } from "lucide-react";
+import { Phone, MapPin, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import CartDrawer from "@/components/CartDrawer";
+
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navLinks = [{
@@ -64,12 +66,7 @@ const Header = () => {
 
             {/* Actions */}
             <div className="flex items-center gap-4">
-              <Button variant="outline" size="icon" className="relative">
-                <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center font-bold">
-                  0
-                </span>
-              </Button>
+              <CartDrawer />
               <Button className="hidden sm:inline-flex" size="lg">
                 Fazer Orçamento
               </Button>
