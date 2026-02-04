@@ -1,9 +1,12 @@
-import { Phone, MapPin, Menu, X } from "lucide-react";
+import { Phone, MapPin, Menu, X, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import CartDrawer from "@/components/CartDrawer";
+import { useAuth } from "@/hooks/useAuth";
 
 const Header = () => {
+  const { user, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navLinks = [{
     label: "Início",
@@ -66,6 +69,13 @@ const Header = () => {
 
             {/* Actions */}
             <div className="flex items-center gap-4">
+              {isAdmin && (
+                <Link to="/admin">
+                  <Button variant="outline" size="icon" className="hidden sm:flex">
+                    <LayoutDashboard className="h-5 w-5" />
+                  </Button>
+                </Link>
+              )}
               <CartDrawer />
               <Button className="hidden sm:inline-flex" size="lg">
                 Fazer Orçamento
