@@ -32,10 +32,10 @@ const Categories = () => {
         {/* Categories Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {categories.map((category, index) => (
-            <a
+            <button
               key={category.name}
-              href="#"
-              className="group relative bg-card rounded-2xl p-6 card-shadow hover:card-shadow-hover transition-all duration-300 hover:-translate-y-1 overflow-hidden animate-fade-in"
+              onClick={() => document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' })}
+              className="group relative bg-card rounded-2xl p-6 card-shadow hover:card-shadow-hover transition-all duration-300 hover:-translate-y-1 overflow-hidden animate-fade-in text-left"
               style={{ animationDelay: `${index * 0.05}s` }}
             >
               {/* Gradient Background on Hover */}
@@ -53,7 +53,7 @@ const Categories = () => {
                   {category.count} produtos
                 </p>
               </div>
-            </a>
+            </button>
           ))}
         </div>
       </div>

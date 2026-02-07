@@ -102,7 +102,7 @@ const FeaturedProducts = () => {
               CONFIRA NOSSAS OFERTAS
             </h2>
           </div>
-          <Button variant="outline" size="lg" className="group">
+          <Button variant="outline" size="lg" className="group" onClick={() => document.getElementById('categorias')?.scrollIntoView({ behavior: 'smooth' })}>
             Ver todos os produtos
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Button>
