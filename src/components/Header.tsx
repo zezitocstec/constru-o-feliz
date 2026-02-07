@@ -77,7 +77,7 @@ const Header = () => {
                 </Link>
               )}
               <CartDrawer />
-              <Button className="hidden sm:inline-flex" size="lg">
+              <Button className="hidden sm:inline-flex" size="lg" onClick={() => document.getElementById('contato')?.scrollIntoView({ behavior: 'smooth' })}>
                 Fazer Orçamento
               </Button>
 
@@ -94,7 +94,7 @@ const Header = () => {
                 {navLinks.map(link => <a key={link.label} href={link.href} className="text-foreground font-medium hover:text-primary transition-colors py-2" onClick={() => setMobileMenuOpen(false)}>
                     {link.label}
                   </a>)}
-                <Button className="w-full mt-2" size="lg">
+                <Button className="w-full mt-2" size="lg" onClick={() => { setMobileMenuOpen(false); document.getElementById('contato')?.scrollIntoView({ behavior: 'smooth' }); }}>
                   Fazer Orçamento
                 </Button>
               </div>
