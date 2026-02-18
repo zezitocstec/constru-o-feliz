@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, Users, Settings, LogOut, Store } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, Users, Settings, LogOut, Store, Warehouse, ClipboardList, UserCog } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -17,12 +17,15 @@ import {
 import { Button } from '@/components/ui/button';
 
 const menuItems = [
-  { title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
-  { title: 'Produtos', url: '/admin/products', icon: Package },
-  { title: 'Vendas', url: '/admin/sales', icon: ShoppingCart },
-  { title: 'Relatórios', url: '/admin/reports', icon: BarChart3 },
-  { title: 'Clientes', url: '/admin/customers', icon: Users },
-  { title: 'Configurações', url: '/admin/settings', icon: Settings },
+  { title: 'Dashboard', url: '/admin', icon: LayoutDashboard, group: 'principal' },
+  { title: 'Produtos', url: '/admin/products', icon: Package, group: 'principal' },
+  { title: 'Estoque', url: '/admin/stock', icon: Warehouse, group: 'principal' },
+  { title: 'Vendas', url: '/admin/sales', icon: ShoppingCart, group: 'principal' },
+  { title: 'Relatórios', url: '/admin/reports', icon: BarChart3, group: 'principal' },
+  { title: 'Clientes', url: '/admin/customers', icon: Users, group: 'principal' },
+  { title: 'Log de Atividades', url: '/admin/audit', icon: ClipboardList, group: 'sistema' },
+  { title: 'Usuários/Permissões', url: '/admin/settings', icon: UserCog, group: 'sistema' },
+  { title: 'Configurações', url: '/admin/settings', icon: Settings, group: 'sistema' },
 ];
 
 export function AdminSidebar() {
@@ -53,7 +56,35 @@ export function AdminSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {menuItems.filter(i => i.group === 'principal').map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      end={item.url === '/admin'}
+                      className={({ isActive }) =>
+                        cn(
+                          'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-muted'
+                        )
+                      }
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Sistema</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {menuItems.filter(i => i.group === 'sistema').map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
