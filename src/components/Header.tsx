@@ -71,8 +71,9 @@ const Header = () => {
             <div className="flex items-center gap-4">
               {isAdmin && (
                 <Link to="/admin">
-                  <Button variant="outline" size="icon" className="hidden sm:flex">
-                    <LayoutDashboard className="h-5 w-5" />
+                  <Button variant="outline" size="sm" className="hidden sm:flex gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                    <LayoutDashboard className="h-4 w-4" />
+                    Admin
                   </Button>
                 </Link>
               )}

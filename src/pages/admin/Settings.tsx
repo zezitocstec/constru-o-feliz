@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Settings as SettingsIcon, Store, User, Bell, Shield } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Settings as SettingsIcon, Store, User, Bell, Shield, UserCog, Plus, Trash2 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,12 +7,30 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+
+interface UserRole {
+  id: string;
+  user_id: string;
+  role: string;
+  created_at: string;
+  profiles?: { email: string | null; full_name: string | null };
+}
 
 const Settings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'admin' | 'product_manager'>('product_manager');
+  const [deleteTarget, setDeleteTarget] = useState<UserRole | null>(null);
   const [storeSettings, setStoreSettings] = useState({
     storeName: 'MD Depósito',
     phone: '(85) 99999-9999',
@@ -25,6 +43,61 @@ const Settings = () => {
     emailStock: true,
     pushSales: false,
   });
+
+  useEffect(() => {
+    fetchUserRoles();
+  }, []);
+
+  const fetchUserRoles = async () => {
+    try {
+      const { data: roles, error } = await supabase
+        .from('user_roles')
+        .select('id, user_id, role, created_at')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch profiles separately
+      const userIds = (roles || []).map(r => r.user_id);
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, email, full_name')
+          .in('user_id', userIds);
+
+        const profileMap = Object.fromEntries((profiles || []).map(p => [p.user_id, p]));
+        setUserRoles((roles || []).map(r => ({
+          ...r,
+          profiles: profileMap[r.user_id] || null,
+        })));
+      } else {
+        setUserRoles([]);
+      }
+    } catch (err) {
+      console.error('Error fetching user roles:', err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleRemoveRole = async () => {
+    if (!deleteTarget) return;
+    try {
+      const { error } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('id', deleteTarget.id);
+
+      if (error) throw error;
+      toast({ title: 'Acesso removido', description: 'O usuário foi removido do sistema.' });
+      setDeleteTarget(null);
+      fetchUserRoles();
+    } catch {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível remover o usuário.' });
+    }
+  };
+
+
 
   const handleSaveStore = () => {
     toast({
@@ -48,8 +121,12 @@ const Settings = () => {
           <p className="text-muted-foreground">Gerencie as configurações do sistema</p>
         </div>
 
-        <Tabs defaultValue="store" className="space-y-6">
+        <Tabs defaultValue="users" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="users" className="gap-2">
+              <UserCog className="h-4 w-4" />
+              Usuários
+            </TabsTrigger>
             <TabsTrigger value="store" className="gap-2">
               <Store className="h-4 w-4" />
               Loja
@@ -67,6 +144,79 @@ const Settings = () => {
               Segurança
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserCog className="h-5 w-5" />
+                  Gerenciar Usuários e Permissões
+                </CardTitle>
+                <CardDescription>
+                  Controle quem tem acesso ao painel administrativo e quais permissões cada usuário possui.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                  <p className="text-sm font-medium">Níveis de acesso:</p>
+                  <div className="flex flex-wrap gap-2 text-sm">
+                    <Badge>admin</Badge>
+                    <span className="text-muted-foreground">— Acesso total ao sistema</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-sm">
+                    <Badge variant="secondary">product_manager</Badge>
+                    <span className="text-muted-foreground">— Somente cadastro, edição e exclusão de produtos (registrado no log)</span>
+                  </div>
+                </div>
+
+                {loadingUsers ? (
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Permissão</TableHead>
+                        <TableHead>Desde</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {userRoles.map((ur) => (
+                        <TableRow key={ur.id}>
+                          <TableCell className="font-medium">{ur.profiles?.email || 'N/A'}</TableCell>
+                          <TableCell>{ur.profiles?.full_name || '-'}</TableCell>
+                          <TableCell>
+                            <Badge variant={ur.role === 'admin' ? 'default' : 'secondary'}>
+                              {ur.role}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(ur.created_at).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {ur.user_id !== user?.id && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteTarget(ur)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
 
           <TabsContent value="store">
             <Card>
@@ -246,6 +396,24 @@ const Settings = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover acesso</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover o acesso de "{deleteTarget?.profiles?.email}"? 
+              Esta ação revogará todas as permissões do usuário no sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemoveRole} className="bg-destructive text-destructive-foreground">
+              Remover Acesso
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };

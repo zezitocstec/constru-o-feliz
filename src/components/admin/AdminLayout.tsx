@@ -17,6 +17,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       if (!user) {
         navigate('/auth');
       } else if (!isAdmin) {
+        // product_manager role is checked separately in useAuth if needed
         navigate('/');
       }
     }
