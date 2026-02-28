@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, Users, Settings, LogOut, Store, Warehouse, ClipboardList, UserCog } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, Users, Settings, LogOut, Store, Warehouse, ClipboardList, UserCog, Truck } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,7 @@ const menuItems = [
   { title: 'Produtos', url: '/admin/products', icon: Package, group: 'principal' },
   { title: 'Estoque', url: '/admin/stock', icon: Warehouse, group: 'principal' },
   { title: 'Vendas', url: '/admin/sales', icon: ShoppingCart, group: 'principal' },
+  { title: 'Pedidos & Entregas', url: '/admin/orders', icon: Truck, group: 'principal' },
   { title: 'Relatórios', url: '/admin/reports', icon: BarChart3, group: 'principal' },
   { title: 'Clientes', url: '/admin/customers', icon: Users, group: 'principal' },
   { title: 'Log de Atividades', url: '/admin/audit', icon: ClipboardList, group: 'sistema' },

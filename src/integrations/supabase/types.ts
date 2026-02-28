@@ -232,12 +232,17 @@ export type Database = {
           customer_email: string | null
           customer_name: string | null
           customer_phone: string | null
+          delivery_address: string | null
+          delivery_notes: string | null
+          delivery_phone: string | null
+          delivery_type: string
           id: string
           notes: string | null
           payment_method: string | null
           profit: number
           status: string
           total: number
+          tracking_status: string
           updated_at: string
         }
         Insert: {
@@ -245,12 +250,17 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          delivery_address?: string | null
+          delivery_notes?: string | null
+          delivery_phone?: string | null
+          delivery_type?: string
           id?: string
           notes?: string | null
           payment_method?: string | null
           profit?: number
           status?: string
           total?: number
+          tracking_status?: string
           updated_at?: string
         }
         Update: {
@@ -258,12 +268,17 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          delivery_address?: string | null
+          delivery_notes?: string | null
+          delivery_phone?: string | null
+          delivery_type?: string
           id?: string
           notes?: string | null
           payment_method?: string | null
           profit?: number
           status?: string
           total?: number
+          tracking_status?: string
           updated_at?: string
         }
         Relationships: []

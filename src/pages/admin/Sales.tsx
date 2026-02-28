@@ -79,6 +79,10 @@ const Sales = () => {
     customer_email: '',
     payment_method: '',
     notes: '',
+    delivery_type: 'local',
+    delivery_address: '',
+    delivery_phone: '',
+    delivery_notes: '',
   });
   const [items, setItems] = useState<SaleItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -205,6 +209,11 @@ const Sales = () => {
           customer_email: formData.customer_email || null,
           payment_method: formData.payment_method || null,
           notes: formData.notes || null,
+          delivery_type: formData.delivery_type,
+          delivery_address: formData.delivery_type === 'delivery' ? formData.delivery_address || null : null,
+          delivery_phone: formData.delivery_type === 'delivery' ? formData.delivery_phone || null : null,
+          delivery_notes: formData.delivery_type === 'delivery' ? formData.delivery_notes || null : null,
+          tracking_status: 'pending',
           total: calculateTotal(),
           profit: calculateProfit(),
           status: 'completed',
@@ -254,6 +263,10 @@ const Sales = () => {
         customer_email: '',
         payment_method: '',
         notes: '',
+        delivery_type: 'local',
+        delivery_address: '',
+        delivery_phone: '',
+        delivery_notes: '',
       });
       setItems([]);
       fetchSales();
@@ -451,16 +464,68 @@ const Sales = () => {
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="notes">Observações</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Observações sobre a venda"
-                rows={2}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Tipo de Entrega</Label>
+                <Select
+                  value={formData.delivery_type}
+                  onValueChange={(value) => setFormData({ ...formData, delivery_type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="local">Retirada Local</SelectItem>
+                    <SelectItem value="delivery">Tele-entrega</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="notes">Observações</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Observações sobre a venda"
+                  rows={2}
+                />
+              </div>
             </div>
+
+            {formData.delivery_type === 'delivery' && (
+              <div className="bg-muted/50 p-4 rounded-lg space-y-4">
+                <h4 className="font-semibold">Dados da Entrega</h4>
+                <div className="grid gap-2">
+                  <Label htmlFor="delivery_address">Endereço de Entrega</Label>
+                  <Input
+                    id="delivery_address"
+                    value={formData.delivery_address}
+                    onChange={(e) => setFormData({ ...formData, delivery_address: e.target.value })}
+                    placeholder="Rua, número, bairro, cidade"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="delivery_phone">Telefone para Entrega</Label>
+                    <Input
+                      id="delivery_phone"
+                      value={formData.delivery_phone}
+                      onChange={(e) => setFormData({ ...formData, delivery_phone: e.target.value })}
+                      placeholder="(00) 00000-0000"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="delivery_notes">Observações da Entrega</Label>
+                    <Input
+                      id="delivery_notes"
+                      value={formData.delivery_notes}
+                      onChange={(e) => setFormData({ ...formData, delivery_notes: e.target.value })}
+                      placeholder="Ponto de referência, etc."
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-4">
