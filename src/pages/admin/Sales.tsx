@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, ShoppingCart, Eye } from 'lucide-react';
+import { Plus, Search, ShoppingCart, Eye, Loader2, MapPin, Package } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -80,12 +80,14 @@ const Sales = () => {
     payment_method: '',
     notes: '',
     delivery_type: 'local',
+    delivery_cep: '',
     delivery_address: '',
     delivery_phone: '',
     delivery_notes: '',
   });
   const [items, setItems] = useState<SaleItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCepLoading, setIsCepLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -144,6 +146,73 @@ const Sales = () => {
     setIsViewDialogOpen(true);
   };
 
+  const fetchCep = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '');
+    if (cleanCep.length !== 8) return;
+    setIsCepLoading(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await response.json();
+      if (data.erro) {
+        toast({ variant: 'destructive', title: 'CEP não encontrado' });
+        return;
+      }
+      setFormData((prev) => ({
+        ...prev,
+        delivery_address: `${data.logradouro}, ${data.bairro}, ${data.localidade} - ${data.uf}`,
+      }));
+    } catch {
+      toast({ variant: 'destructive', title: 'Erro ao buscar CEP' });
+    } finally {
+      setIsCepLoading(false);
+    }
+  };
+
+  const fetchCartItems = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('cart_items')
+        .select('*, products(id, name, price, cost_price, stock)');
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast({ title: 'Carrinho vazio', description: 'Não há itens no carrinho do site.' });
+        return;
+      }
+      const cartSaleItems: SaleItem[] = data
+        .filter((ci: any) => ci.products)
+        .map((ci: any) => ({
+          product_id: ci.products.id,
+          product_name: ci.products.name,
+          quantity: ci.quantity,
+          unit_price: ci.products.price,
+          cost_price: ci.products.cost_price,
+        }));
+      setItems((prev) => [...prev, ...cartSaleItems]);
+      toast({ title: 'Itens do carrinho importados', description: `${cartSaleItems.length} item(ns) adicionado(s).` });
+    } catch (error) {
+      console.error('Error fetching cart items:', error);
+      toast({ variant: 'destructive', title: 'Erro ao buscar carrinho' });
+    }
+  };
+
+  const handleAddAllProducts = () => {
+    const newItems: SaleItem[] = products
+      .filter((p) => !items.some((i) => i.product_id === p.id))
+      .map((p) => ({
+        product_id: p.id,
+        product_name: p.name,
+        quantity: 1,
+        unit_price: p.price,
+        cost_price: p.cost_price,
+      }));
+    if (newItems.length === 0) {
+      toast({ title: 'Todos os produtos já foram adicionados' });
+      return;
+    }
+    setItems((prev) => [...prev, ...newItems]);
+    toast({ title: 'Produtos adicionados', description: `${newItems.length} produto(s) adicionado(s).` });
+  };
+
   const handleAddItem = () => {
     setItems([...items, {
       product_id: '',
@@ -179,21 +248,20 @@ const Sales = () => {
     setItems(newItems);
   };
 
-  const calculateTotal = () => {
-    return items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
-  };
+  const calculateTotal = () => items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
+  const calculateProfit = () => items.reduce((sum, item) => sum + (item.unit_price - item.cost_price) * item.quantity, 0);
 
-  const calculateProfit = () => {
-    return items.reduce((sum, item) => sum + (item.unit_price - item.cost_price) * item.quantity, 0);
+  const resetForm = () => {
+    setFormData({
+      customer_name: '', customer_phone: '', customer_email: '', payment_method: '', notes: '',
+      delivery_type: 'local', delivery_cep: '', delivery_address: '', delivery_phone: '', delivery_notes: '',
+    });
+    setItems([]);
   };
 
   const handleSubmit = async () => {
     if (items.length === 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Adicione pelo menos um item à venda.',
-      });
+      toast({ variant: 'destructive', title: 'Erro', description: 'Adicione pelo menos um item à venda.' });
       return;
     }
 
@@ -257,18 +325,7 @@ const Sales = () => {
       });
 
       setIsDialogOpen(false);
-      setFormData({
-        customer_name: '',
-        customer_phone: '',
-        customer_email: '',
-        payment_method: '',
-        notes: '',
-        delivery_type: 'local',
-        delivery_address: '',
-        delivery_phone: '',
-        delivery_notes: '',
-      });
-      setItems([]);
+      resetForm();
       fetchSales();
       fetchProducts();
     } catch (error) {
@@ -378,7 +435,7 @@ const Sales = () => {
                         <TableCell className="text-right font-medium">
                           {formatCurrency(Number(sale.total))}
                         </TableCell>
-                        <TableCell className="text-right text-green-600">
+                        <TableCell className="text-right text-primary">
                           {formatCurrency(Number(sale.profit))}
                         </TableCell>
                         <TableCell>{getStatusBadge(sale.status)}</TableCell>
@@ -495,6 +552,24 @@ const Sales = () => {
             {formData.delivery_type === 'delivery' && (
               <div className="bg-muted/50 p-4 rounded-lg space-y-4">
                 <h4 className="font-semibold">Dados da Entrega</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="delivery_cep">CEP</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="delivery_cep"
+                        value={formData.delivery_cep}
+                        onChange={(e) => setFormData({ ...formData, delivery_cep: e.target.value })}
+                        onBlur={() => fetchCep(formData.delivery_cep)}
+                        placeholder="00000-000"
+                        maxLength={9}
+                      />
+                      <Button type="button" variant="outline" size="icon" onClick={() => fetchCep(formData.delivery_cep)} disabled={isCepLoading}>
+                        {isCepLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
                 <div className="grid gap-2">
                   <Label htmlFor="delivery_address">Endereço de Entrega</Label>
                   <Input
@@ -528,17 +603,27 @@ const Sales = () => {
             )}
 
             <div className="border-t pt-4">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <h4 className="font-semibold">Itens da Venda</h4>
-                <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Item
-                </Button>
+                <div className="flex gap-2 flex-wrap">
+                  <Button type="button" variant="outline" size="sm" onClick={fetchCartItems}>
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Importar Carrinho
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={handleAddAllProducts}>
+                    <Package className="h-4 w-4 mr-2" />
+                    Catálogo
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Item
+                  </Button>
+                </div>
               </div>
 
               {items.length === 0 ? (
                 <p className="text-muted-foreground text-center py-4">
-                  Nenhum item adicionado
+                  Nenhum item adicionado. Use os botões acima para importar do carrinho, catálogo ou adicionar manualmente.
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -592,7 +677,7 @@ const Sales = () => {
                     <span>Total:</span>
                     <span>{formatCurrency(calculateTotal())}</span>
                   </div>
-                  <div className="flex justify-between text-green-600">
+                  <div className="flex justify-between text-primary">
                     <span>Lucro estimado:</span>
                     <span>{formatCurrency(calculateProfit())}</span>
                   </div>
@@ -659,7 +744,7 @@ const Sales = () => {
                   <span>Total:</span>
                   <span>{formatCurrency(Number(selectedSale.total))}</span>
                 </div>
-                <div className="flex justify-between text-green-600">
+                <div className="flex justify-between text-primary">
                   <span>Lucro:</span>
                   <span>{formatCurrency(Number(selectedSale.profit))}</span>
                 </div>
