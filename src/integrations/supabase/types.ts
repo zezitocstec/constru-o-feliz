@@ -106,8 +106,53 @@ export type Database = {
         }
         Relationships: []
       }
+      product_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          id: string
+          is_approved: boolean
+          product_id: string
+          rating: number
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          id?: string
+          is_approved?: boolean
+          product_id: string
+          rating: number
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          id?: string
+          is_approved?: boolean
+          product_id?: string
+          rating?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
+          brand: string | null
           category: string | null
           cost_price: number
           created_at: string
@@ -116,11 +161,14 @@ export type Database = {
           image_url: string | null
           is_active: boolean
           name: string
+          old_price: number | null
           price: number
           stock: number
+          tag: string | null
           updated_at: string
         }
         Insert: {
+          brand?: string | null
           category?: string | null
           cost_price?: number
           created_at?: string
@@ -129,11 +177,14 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           name: string
+          old_price?: number | null
           price?: number
           stock?: number
+          tag?: string | null
           updated_at?: string
         }
         Update: {
+          brand?: string | null
           category?: string | null
           cost_price?: number
           created_at?: string
@@ -142,8 +193,10 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           name?: string
+          old_price?: number | null
           price?: number
           stock?: number
+          tag?: string | null
           updated_at?: string
         }
         Relationships: []
