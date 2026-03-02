@@ -195,24 +195,6 @@ const Sales = () => {
     }
   };
 
-  const handleAddAllProducts = () => {
-    const newItems: SaleItem[] = products
-      .filter((p) => !items.some((i) => i.product_id === p.id))
-      .map((p) => ({
-        product_id: p.id,
-        product_name: p.name,
-        quantity: 1,
-        unit_price: p.price,
-        cost_price: p.cost_price,
-      }));
-    if (newItems.length === 0) {
-      toast({ title: 'Todos os produtos já foram adicionados' });
-      return;
-    }
-    setItems((prev) => [...prev, ...newItems]);
-    toast({ title: 'Produtos adicionados', description: `${newItems.length} produto(s) adicionado(s).` });
-  };
-
   const handleAddItem = () => {
     setItems([...items, {
       product_id: '',
@@ -610,10 +592,8 @@ const Sales = () => {
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     Importar Carrinho
                   </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={handleAddAllProducts}>
-                    <Package className="h-4 w-4 mr-2" />
-                    Catálogo
-                  </Button>
+
+
                   <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
                     <Plus className="h-4 w-4 mr-2" />
                     Adicionar Item
@@ -623,7 +603,7 @@ const Sales = () => {
 
               {items.length === 0 ? (
                 <p className="text-muted-foreground text-center py-4">
-                  Nenhum item adicionado. Use os botões acima para importar do carrinho, catálogo ou adicionar manualmente.
+                  Nenhum item adicionado. Use os botões acima para importar do carrinho ou adicionar manualmente.
                 </p>
               ) : (
                 <div className="space-y-3">
