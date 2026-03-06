@@ -69,11 +69,17 @@ const Header = () => {
 
             {/* Actions */}
             <div className="flex items-center gap-4">
-              {isAdmin && (
+              {isAdmin ? (
                 <Link to="/admin">
                   <Button variant="outline" size="sm" className="hidden sm:flex gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground">
                     <LayoutDashboard className="h-4 w-4" />
                     Admin
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/auth">
+                  <Button variant="ghost" size="icon" className="hidden sm:flex text-muted-foreground hover:text-primary" title="Área administrativa">
+                    <LayoutDashboard className="h-4 w-4" />
                   </Button>
                 </Link>
               )}
