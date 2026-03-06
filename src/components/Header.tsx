@@ -1,9 +1,36 @@
 import { Phone, MapPin, Menu, X, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useRef, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import CartDrawer from "@/components/CartDrawer";
 import { useAuth } from "@/hooks/useAuth";
+
+const HiddenAdminAccess = () => {
+  const navigate = useNavigate();
+  const clickCountRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleClick = useCallback(() => {
+    clickCountRef.current += 1;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (clickCountRef.current >= 3) {
+      clickCountRef.current = 0;
+      navigate('/auth');
+    } else {
+      timerRef.current = setTimeout(() => {
+        clickCountRef.current = 0;
+      }, 600);
+    }
+  }, [navigate]);
+
+  return (
+    <div
+      onClick={handleClick}
+      className="w-10 h-10 cursor-default select-none"
+      aria-hidden="true"
+    />
+  );
+};
 
 const Header = () => {
   const { user, isAdmin } = useAuth();
@@ -77,11 +104,7 @@ const Header = () => {
                   </Button>
                 </Link>
               ) : (
-                <Link to="/auth">
-                  <Button variant="ghost" size="icon" className="hidden sm:flex text-muted-foreground hover:text-primary" title="Área administrativa">
-                    <LayoutDashboard className="h-4 w-4" />
-                  </Button>
-                </Link>
+                <HiddenAdminAccess />
               )}
               <CartDrawer />
               <Button className="hidden sm:inline-flex" size="lg" onClick={() => document.getElementById('contato')?.scrollIntoView({ behavior: 'smooth' })}>
