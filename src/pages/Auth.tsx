@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,8 +23,10 @@ const signupSchema = loginSchema.extend({
   path: ['confirmPassword'],
 });
 
+type AuthView = 'login' | 'signup' | 'forgot';
+
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [view, setView] = useState<AuthView>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -44,9 +47,9 @@ const Auth = () => {
 
   const validateForm = () => {
     try {
-      if (isLogin) {
+      if (view === 'login') {
         loginSchema.parse({ email, password });
-      } else {
+      } else if (view === 'signup') {
         signupSchema.parse({ email, password, confirmPassword, fullName });
       }
       setErrors({});
@@ -65,15 +68,38 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      setErrors({ email: 'Informe seu email' });
+      return;
+    }
+    setIsSubmitting(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+    } else {
+      toast({ title: 'Email enviado!', description: 'Verifique sua caixa de entrada para redefinir a senha.' });
+      setView('login');
+    }
+    setIsSubmitting(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (view === 'forgot') {
+      return handleForgotPassword(e);
+    }
+
     if (!validateForm()) return;
     
     setIsSubmitting(true);
 
     try {
-      if (isLogin) {
+      if (view === 'login') {
         const { error } = await signIn(email, password);
         if (error) {
           toast({
@@ -84,10 +110,7 @@ const Auth = () => {
               : error.message,
           });
         } else {
-          toast({
-            title: 'Bem-vindo!',
-            description: 'Login realizado com sucesso.',
-          });
+          toast({ title: 'Bem-vindo!', description: 'Login realizado com sucesso.' });
           navigate('/admin');
         }
       } else {
@@ -101,19 +124,12 @@ const Auth = () => {
               : error.message,
           });
         } else {
-          toast({
-            title: 'Cadastro realizado!',
-            description: 'Verifique seu email para confirmar a conta.',
-          });
-          setIsLogin(true);
+          toast({ title: 'Cadastro realizado!', description: 'Verifique seu email para confirmar a conta.' });
+          setView('login');
         }
       }
     } catch (err) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Ocorreu um erro inesperado. Tente novamente.',
-      });
+      toast({ variant: 'destructive', title: 'Erro', description: 'Ocorreu um erro inesperado. Tente novamente.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -127,6 +143,18 @@ const Auth = () => {
     );
   }
 
+  const titles: Record<AuthView, string> = {
+    login: 'Entrar',
+    signup: 'Criar Conta',
+    forgot: 'Recuperar Senha',
+  };
+
+  const descriptions: Record<AuthView, string> = {
+    login: 'Acesse sua conta administrativa',
+    signup: 'Cadastre-se para acessar o sistema',
+    forgot: 'Informe seu email para receber o link de recuperação',
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="w-full max-w-md">
@@ -134,115 +162,78 @@ const Auth = () => {
           <div className="mx-auto w-12 h-12 hero-gradient rounded-xl flex items-center justify-center mb-4">
             <Building2 className="w-6 h-6 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-display">
-            {isLogin ? 'Entrar' : 'Criar Conta'}
-          </CardTitle>
-          <CardDescription>
-            {isLogin 
-              ? 'Acesse sua conta administrativa' 
-              : 'Cadastre-se para acessar o sistema'}
-          </CardDescription>
+          <CardTitle className="text-2xl font-display">{titles[view]}</CardTitle>
+          <CardDescription>{descriptions[view]}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
+            {view === 'signup' && (
               <div className="space-y-2">
                 <Label htmlFor="fullName">Nome Completo</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Seu nome"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-                {errors.fullName && (
-                  <p className="text-sm text-destructive">{errors.fullName}</p>
-                )}
+                <Input id="fullName" type="text" placeholder="Seu nome" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                {errors.fullName && <p className="text-sm text-destructive">{errors.fullName}</p>}
               </div>
             )}
             
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
-              )}
+              <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full px-3"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
+            {view !== 'forgot' && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <div className="relative">
+                  <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0 h-full px-3" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
               </div>
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
-              )}
-            </div>
+            )}
 
-            {!isLogin && (
+            {view === 'signup' && (
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-                {errors.confirmPassword && (
-                  <p className="text-sm text-destructive">{errors.confirmPassword}</p>
-                )}
+                <Input id="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
+              </div>
+            )}
+
+            {view === 'login' && (
+              <div className="text-right">
+                <Button type="button" variant="link" className="p-0 h-auto text-sm" onClick={() => { setView('forgot'); setErrors({}); }}>
+                  Esqueceu a senha?
+                </Button>
               </div>
             )}
 
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? 'Carregando...' : isLogin ? 'Entrar' : 'Cadastrar'}
+              {isSubmitting ? 'Carregando...' : view === 'login' ? 'Entrar' : view === 'signup' ? 'Cadastrar' : 'Enviar Link'}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">
-              {isLogin ? 'Não tem conta? ' : 'Já tem conta? '}
-            </span>
-            <Button
-              variant="link"
-              className="p-0 h-auto"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setErrors({});
-              }}
-            >
-              {isLogin ? 'Cadastre-se' : 'Faça login'}
-            </Button>
+            {view === 'forgot' ? (
+              <Button variant="link" className="p-0 h-auto" onClick={() => { setView('login'); setErrors({}); }}>
+                ← Voltar ao login
+              </Button>
+            ) : (
+              <>
+                <span className="text-muted-foreground">
+                  {view === 'login' ? 'Não tem conta? ' : 'Já tem conta? '}
+                </span>
+                <Button variant="link" className="p-0 h-auto" onClick={() => { setView(view === 'login' ? 'signup' : 'login'); setErrors({}); }}>
+                  {view === 'login' ? 'Cadastre-se' : 'Faça login'}
+                </Button>
+              </>
+            )}
           </div>
 
           <div className="mt-4 text-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/')}
-            >
+            <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
               ← Voltar para a loja
             </Button>
           </div>
