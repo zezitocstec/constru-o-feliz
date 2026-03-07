@@ -57,7 +57,7 @@ const Header = () => {
       <div className="dark-gradient text-secondary-foreground">
         <div className="container mx-auto px-4 py-2 flex justify-between items-center text-sm">
           <div className="flex items-center gap-6">
-            <a href="tel:+5511999999999" className="flex items-center gap-2 hover:text-accent transition-colors">
+            <a href="tel:+5585985102376" className="flex items-center gap-2 hover:text-accent transition-colors">
               <Phone className="w-4 h-4" />
               <span className="hidden sm:inline">(85)98510-2376</span>
             </a>
