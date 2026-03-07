@@ -12,12 +12,10 @@ const Contact = () => {
             <span className="inline-block text-primary font-semibold text-sm uppercase tracking-wider mb-3">
               Entre em contato
             </span>
-            <h2 className="font-display text-4xl md:text-5xl text-foreground mb-6">
-              ESTAMOS AQUI PARA AJUDAR
-            </h2>
+            <h2 className="font-display text-4xl md:text-5xl text-foreground mb-6">ESTAMOS AQUI PARA AJUDAR</h2>
             <p className="text-muted-foreground mb-8 max-w-lg">
-              Precisa de ajuda para escolher os materiais certos? Nossa equipe especializada 
-              está pronta para atender você e fazer seu orçamento sem compromisso.
+              Precisa de ajuda para escolher os materiais certos? Nossa equipe especializada está pronta para atender
+              você e fazer seu orçamento sem compromisso.
             </p>
 
             <div className="space-y-6">
@@ -30,7 +28,7 @@ const Contact = () => {
                 {
                   icon: Phone,
                   title: "Telefone",
-                  content: "(11) 99999-9999\n(11) 3333-4444",
+                  content: "(85)98510-2376\n(11) 3333-4444",
                 },
                 {
                   icon: Mail,
@@ -71,7 +69,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Telefone</label>
-                  <Input placeholder="(11) 99999-9999" />
+                  <Input placeholder="(85)98510-2376" />
                 </div>
               </div>
 
