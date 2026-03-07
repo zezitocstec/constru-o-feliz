@@ -42,8 +42,8 @@ const Footer = () => {
               </div>
             </a>
             <p className="text-primary-foreground/70 mb-6 max-w-sm">
-              Há mais de 20 anos oferecendo os melhores materiais de construção com qualidade, 
-              preço justo e atendimento especializado.
+              Há mais de 20 anos oferecendo os melhores materiais de construção com qualidade, preço justo e atendimento
+              especializado.
             </p>
             <div className="flex items-center gap-2 text-primary-foreground/70 mb-6">
               <MapPin className="w-4 h-4" />
@@ -72,7 +72,10 @@ const Footer = () => {
             <ul className="space-y-3">
               {links.products.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-primary-foreground/70 hover:text-accent transition-colors text-sm">
+                  <a
+                    href={link.href}
+                    className="text-primary-foreground/70 hover:text-accent transition-colors text-sm"
+                  >
                     {link.label}
                   </a>
                 </li>
@@ -85,7 +88,10 @@ const Footer = () => {
             <ul className="space-y-3">
               {links.institutional.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-primary-foreground/70 hover:text-accent transition-colors text-sm">
+                  <a
+                    href={link.href}
+                    className="text-primary-foreground/70 hover:text-accent transition-colors text-sm"
+                  >
                     {link.label}
                   </a>
                 </li>
@@ -98,7 +104,10 @@ const Footer = () => {
             <ul className="space-y-3">
               {links.help.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-primary-foreground/70 hover:text-accent transition-colors text-sm">
+                  <a
+                    href={link.href}
+                    className="text-primary-foreground/70 hover:text-accent transition-colors text-sm"
+                  >
                     {link.label}
                   </a>
                 </li>
@@ -112,8 +121,8 @@ const Footer = () => {
       <div className="border-t border-primary-foreground/10">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-primary-foreground/60">
-            <p>© 2024 Depósito Construir. Todos os direitos reservados.</p>
-            <p>Desenvolvido com ❤️ para você construir seus sonhos</p>
+            <p>© 2026 IT.Sega4 — Automatize. Escale. Conquiste.</p>
+            <p>Desenvolvido com © 2026 IT.Sega4</p>
           </div>
         </div>
       </div>
