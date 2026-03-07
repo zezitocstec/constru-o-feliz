@@ -23,7 +23,7 @@ const Contact = () => {
                 {
                   icon: MapPin,
                   title: "Endereço",
-                  content: "Rua das Construções, 1234\nJardim Paulista - São Paulo, SP",
+                  content: "R. Camélia - Cristo Redentor - Fortaleza - CE, 60337-380",
                 },
                 {
                   icon: Phone,
