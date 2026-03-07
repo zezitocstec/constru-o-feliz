@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Plus, Minus, Trash2, ShoppingCart, Barcode, Percent, X, Check } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Barcode, Percent, X, Check, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PDVLayout } from '@/components/pdv/PDVLayout';
 import { Button } from '@/components/ui/button';
@@ -34,14 +34,13 @@ interface CartItem {
   quantity: number;
   unit_price: number;
   cost_price: number;
-  discount: number; // percentage
+  discount: number;
 }
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
 const PDVCashier = () => {
-  const [products, setProducts] = useState<Product[]>([]);
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -52,14 +51,17 @@ const PDVCashier = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [discountItem, setDiscountItem] = useState<number | null>(null);
   const [discountValue, setDiscountValue] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [productsCache, setProductsCache] = useState<Product[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const { toast } = useToast();
 
+  // Load all products into cache on mount
   useEffect(() => {
-    fetchProducts();
+    loadProducts();
   }, []);
 
-  // Focus search on mount and on key shortcut
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'F2') {
@@ -79,31 +81,78 @@ const PDVCashier = () => {
     return () => window.removeEventListener('keydown', handler);
   }, [cart]);
 
-  const fetchProducts = async () => {
-    const { data } = await supabase
+  const loadProducts = async () => {
+    const { data, error } = await supabase
       .from('products')
       .select('id, name, price, cost_price, stock, category, brand')
       .eq('is_active', true)
       .gt('stock', 0)
       .order('name');
-    setProducts(data || []);
+    
+    if (error) {
+      console.error('Error loading products:', error);
+      toast({ variant: 'destructive', title: 'Erro ao carregar produtos', description: error.message });
+      return;
+    }
+    setProductsCache(data || []);
   };
+
+  const searchProducts = useCallback(async (term: string) => {
+    if (term.length < 2) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    // First try local cache
+    const lower = term.toLowerCase();
+    const localResults = productsCache.filter(
+      p =>
+        p.name.toLowerCase().includes(lower) ||
+        p.id.toLowerCase().includes(lower) ||
+        (p.brand && p.brand.toLowerCase().includes(lower)) ||
+        (p.category && p.category.toLowerCase().includes(lower))
+    );
+
+    if (localResults.length > 0) {
+      setSearchResults(localResults.slice(0, 10));
+      setIsSearching(false);
+      return;
+    }
+
+    // If no local results, query database directly
+    setIsSearching(true);
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, price, cost_price, stock, category, brand')
+      .eq('is_active', true)
+      .gt('stock', 0)
+      .or(`name.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%,id.ilike.%${term}%`)
+      .order('name')
+      .limit(10);
+
+    if (error) {
+      console.error('Search error:', error);
+      toast({ variant: 'destructive', title: 'Erro na busca' });
+    } else {
+      setSearchResults(data || []);
+    }
+    setIsSearching(false);
+  }, [productsCache, toast]);
 
   const handleSearch = useCallback((term: string) => {
     setSearchTerm(term);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    
     if (term.length < 2) {
       setSearchResults([]);
       return;
     }
-    const lower = term.toLowerCase();
-    const results = products.filter(
-      p =>
-        p.name.toLowerCase().includes(lower) ||
-        p.id.includes(lower) ||
-        (p.brand && p.brand.toLowerCase().includes(lower))
-    );
-    setSearchResults(results.slice(0, 8));
-  }, [products]);
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      searchProducts(term);
+    }, 200);
+  }, [searchProducts]);
 
   const addToCart = (product: Product) => {
     setCart(prev => {
@@ -137,7 +186,7 @@ const PDVCashier = () => {
   const updateQuantity = (index: number, delta: number) => {
     setCart(prev => {
       const item = prev[index];
-      const product = products.find(p => p.id === item.product_id);
+      const product = productsCache.find(p => p.id === item.product_id);
       const newQty = item.quantity + delta;
       if (newQty <= 0) return prev.filter((_, i) => i !== index);
       if (product && newQty > product.stock) {
@@ -188,6 +237,7 @@ const PDVCashier = () => {
     }
     setIsSubmitting(true);
     try {
+      // Insert sale
       const { data: saleData, error: saleError } = await supabase
         .from('sales')
         .insert({
@@ -201,8 +251,13 @@ const PDVCashier = () => {
         })
         .select()
         .single();
-      if (saleError) throw saleError;
+      
+      if (saleError) {
+        console.error('Sale insert error:', saleError);
+        throw new Error(`Erro ao criar venda: ${saleError.message}`);
+      }
 
+      // Insert sale items
       const saleItemsData = cart.map(item => ({
         sale_id: saleData.id,
         product_id: item.product_id,
@@ -213,26 +268,33 @@ const PDVCashier = () => {
         subtotal: getItemSubtotal(item),
       }));
       const { error: itemsError } = await supabase.from('sale_items').insert(saleItemsData);
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('Sale items error:', itemsError);
+        throw new Error(`Erro ao salvar itens: ${itemsError.message}`);
+      }
 
-      // Update stock
+      // Update stock for each product
       for (const item of cart) {
-        const product = products.find(p => p.id === item.product_id);
+        const product = productsCache.find(p => p.id === item.product_id);
         if (product) {
-          await supabase
+          const newStock = Math.max(0, product.stock - item.quantity);
+          const { error: stockError } = await supabase
             .from('products')
-            .update({ stock: product.stock - item.quantity })
+            .update({ stock: newStock })
             .eq('id', item.product_id);
+          if (stockError) {
+            console.error('Stock update error:', stockError);
+          }
         }
       }
 
-      toast({ title: 'Venda finalizada!', description: `Total: ${formatCurrency(total)}` });
+      toast({ title: '✅ Venda finalizada com sucesso!', description: `Total: ${formatCurrency(total)}` });
       setIsFinishOpen(false);
       clearCart();
-      fetchProducts();
-    } catch (error) {
-      console.error(error);
-      toast({ variant: 'destructive', title: 'Erro ao finalizar venda' });
+      loadProducts(); // Refresh products cache
+    } catch (error: any) {
+      console.error('Finalize error:', error);
+      toast({ variant: 'destructive', title: 'Erro ao finalizar venda', description: error.message || 'Tente novamente' });
     } finally {
       setIsSubmitting(false);
     }
@@ -251,25 +313,31 @@ const PDVCashier = () => {
                 <Input
                   ref={searchRef}
                   placeholder="Buscar produto por nome, código ou marca... (F2)"
-                  className="pl-11 h-12 text-lg"
+                  className="pl-11 pr-20 h-12 text-lg"
                   value={searchTerm}
                   onChange={e => handleSearch(e.target.value)}
                   autoFocus
                 />
-                {searchTerm && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2"
-                    onClick={() => { setSearchTerm(''); setSearchResults([]); }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  {isSearching && (
+                    <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                  {searchTerm && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => { setSearchTerm(''); setSearchResults([]); }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
+
               {/* Search results dropdown */}
               {searchResults.length > 0 && (
-                <div className="mt-2 border border-border rounded-lg overflow-hidden bg-card shadow-lg">
+                <div className="mt-2 border border-border rounded-lg overflow-hidden bg-card shadow-lg max-h-80 overflow-y-auto">
                   {searchResults.map(product => (
                     <button
                       key={product.id}
@@ -289,6 +357,25 @@ const PDVCashier = () => {
                   ))}
                 </div>
               )}
+
+              {/* No results message */}
+              {searchTerm.length >= 2 && searchResults.length === 0 && !isSearching && (
+                <div className="mt-2 p-4 text-center text-muted-foreground text-sm border border-border rounded-lg">
+                  Nenhum produto encontrado para "{searchTerm}"
+                </div>
+              )}
+
+              {/* Products count indicator */}
+              <div className="mt-2 flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  {productsCache.length > 0 
+                    ? `${productsCache.length} produtos disponíveis` 
+                    : 'Carregando produtos...'}
+                </p>
+                <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={loadProducts}>
+                  <RefreshCw className="h-3 w-3 mr-1" /> Atualizar
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
