@@ -47,7 +47,7 @@ const Footer = () => {
             </p>
             <div className="flex items-center gap-2 text-primary-foreground/70 mb-6">
               <MapPin className="w-4 h-4" />
-              <span className="text-sm">São Paulo, SP - Região Metropolitana</span>
+              <span className="text-sm">Fortaleza, CE- Região Metropolitana</span>
             </div>
             <div className="flex gap-4">
               {[
