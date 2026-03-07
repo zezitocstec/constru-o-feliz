@@ -18,6 +18,8 @@ import Reports from "./pages/admin/Reports";
 import Customers from "./pages/admin/Customers";
 import Settings from "./pages/admin/Settings";
 import AuditLog from "./pages/admin/AuditLog";
+import PDVCashier from "./pages/pdv/PDVCashier";
+import PDVHistory from "./pages/pdv/PDVHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +46,8 @@ const App = () => (
               <Route path="/admin/customers" element={<Customers />} />
               <Route path="/admin/settings" element={<Settings />} />
               <Route path="/admin/audit" element={<AuditLog />} />
+              <Route path="/pdv" element={<PDVCashier />} />
+              <Route path="/pdv/history" element={<PDVHistory />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

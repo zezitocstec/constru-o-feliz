@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, Users, Settings, LogOut, Store, Warehouse, ClipboardList, UserCog, Truck } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, Users, Settings, LogOut, Store, Warehouse, ClipboardList, UserCog, Truck, Monitor } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -112,6 +112,14 @@ export function AdminSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-4 border-t border-border space-y-2">
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-2"
+          onClick={() => navigate('/pdv')}
+        >
+          <Monitor className="h-4 w-4" />
+          Abrir PDV
+        </Button>
         <Button
           variant="outline"
           className="w-full justify-start gap-2"
