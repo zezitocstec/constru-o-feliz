@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, Users, Settings, LogOut, Store, Warehouse, ClipboardList, UserCog, Truck, Monitor } from 'lucide-react';
+import { Monitor, History, BarChart3, Settings, LogOut, Store, Users } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -17,19 +17,14 @@ import {
 import { Button } from '@/components/ui/button';
 
 const menuItems = [
-  { title: 'Dashboard', url: '/admin', icon: LayoutDashboard, group: 'principal' },
-  { title: 'Produtos', url: '/admin/products', icon: Package, group: 'principal' },
-  { title: 'Estoque', url: '/admin/stock', icon: Warehouse, group: 'principal' },
-  { title: 'Vendas', url: '/admin/sales', icon: ShoppingCart, group: 'principal' },
-  { title: 'Pedidos & Entregas', url: '/admin/orders', icon: Truck, group: 'principal' },
-  { title: 'Relatórios', url: '/admin/reports', icon: BarChart3, group: 'principal' },
-  { title: 'Clientes', url: '/admin/customers', icon: Users, group: 'principal' },
-  { title: 'Log de Atividades', url: '/admin/audit', icon: ClipboardList, group: 'sistema' },
-  { title: 'Usuários/Permissões', url: '/admin/settings', icon: UserCog, group: 'sistema' },
-  { title: 'Configurações', url: '/admin/settings', icon: Settings, group: 'sistema' },
+  { title: 'Frente de Caixa', url: '/pdv', icon: Monitor, group: 'principal' },
+  { title: 'Histórico de Vendas', url: '/pdv/history', icon: History, group: 'principal' },
+  { title: 'Clientes', url: '/pdv/customers', icon: Users, group: 'principal' },
+  { title: 'Relatório do Caixa', url: '/pdv/report', icon: BarChart3, group: 'principal' },
+  { title: 'Configurações', url: '/pdv/settings', icon: Settings, group: 'sistema' },
 ];
 
-export function AdminSidebar() {
+export function PDVSidebar() {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
 
@@ -42,12 +37,12 @@ export function AdminSidebar() {
     <Sidebar className="border-r border-border">
       <SidebarHeader className="p-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 hero-gradient rounded-lg flex items-center justify-center">
-            <span className="font-display text-lg text-primary-foreground">MD</span>
+          <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
+            <Monitor className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h2 className="font-display text-lg">MD Depósito</h2>
-            <p className="text-xs text-muted-foreground">Painel Admin</p>
+            <h2 className="font-display text-lg">itsega4PDV</h2>
+            <p className="text-xs text-muted-foreground">Ponto de Venda</p>
           </div>
         </div>
       </SidebarHeader>
@@ -62,12 +57,12 @@ export function AdminSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === '/admin'}
+                      end={item.url === '/pdv'}
                       className={({ isActive }) =>
                         cn(
                           'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
                           isActive
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'bg-emerald-600 text-white'
                             : 'hover:bg-muted'
                         )
                       }
@@ -90,12 +85,11 @@ export function AdminSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === '/admin'}
                       className={({ isActive }) =>
                         cn(
                           'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
                           isActive
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'bg-emerald-600 text-white'
                             : 'hover:bg-muted'
                         )
                       }
@@ -115,10 +109,10 @@ export function AdminSidebar() {
         <Button
           variant="outline"
           className="w-full justify-start gap-2"
-          onClick={() => navigate('/pdv')}
+          onClick={() => navigate('/admin')}
         >
-          <Monitor className="h-4 w-4" />
-          Abrir PDV
+          <Store className="h-4 w-4" />
+          Painel Admin
         </Button>
         <Button
           variant="outline"
@@ -129,14 +123,14 @@ export function AdminSidebar() {
           Ver Loja
         </Button>
         <div className="flex items-center gap-2 px-2 py-1">
-          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-            <span className="text-sm font-medium text-primary">
+          <div className="w-8 h-8 rounded-full bg-emerald-600/20 flex items-center justify-center">
+            <span className="text-sm font-medium text-emerald-600">
               {user?.email?.charAt(0).toUpperCase()}
             </span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{user?.email}</p>
-            <p className="text-xs text-muted-foreground">Admin</p>
+            <p className="text-xs text-muted-foreground">Operador</p>
           </div>
           <Button variant="ghost" size="icon" onClick={handleSignOut}>
             <LogOut className="h-4 w-4" />

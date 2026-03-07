@@ -1,0 +1,549 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Barcode, Percent, X, Check } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { PDVLayout } from '@/components/pdv/PDVLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from '@/components/ui/dialog';
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  cost_price: number;
+  stock: number;
+  category: string | null;
+  brand: string | null;
+}
+
+interface CartItem {
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  cost_price: number;
+  discount: number; // percentage
+}
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+const PDVCashier = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [amountPaid, setAmountPaid] = useState('');
+  const [isFinishOpen, setIsFinishOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [discountItem, setDiscountItem] = useState<number | null>(null);
+  const [discountValue, setDiscountValue] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  // Focus search on mount and on key shortcut
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+      if (e.key === 'F9') {
+        e.preventDefault();
+        if (cart.length > 0) setIsFinishOpen(true);
+      }
+      if (e.key === 'Escape') {
+        setSearchTerm('');
+        setSearchResults([]);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [cart]);
+
+  const fetchProducts = async () => {
+    const { data } = await supabase
+      .from('products')
+      .select('id, name, price, cost_price, stock, category, brand')
+      .eq('is_active', true)
+      .gt('stock', 0)
+      .order('name');
+    setProducts(data || []);
+  };
+
+  const handleSearch = useCallback((term: string) => {
+    setSearchTerm(term);
+    if (term.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    const lower = term.toLowerCase();
+    const results = products.filter(
+      p =>
+        p.name.toLowerCase().includes(lower) ||
+        p.id.includes(lower) ||
+        (p.brand && p.brand.toLowerCase().includes(lower))
+    );
+    setSearchResults(results.slice(0, 8));
+  }, [products]);
+
+  const addToCart = (product: Product) => {
+    setCart(prev => {
+      const existing = prev.find(i => i.product_id === product.id);
+      if (existing) {
+        if (existing.quantity >= product.stock) {
+          toast({ variant: 'destructive', title: 'Estoque insuficiente' });
+          return prev;
+        }
+        return prev.map(i =>
+          i.product_id === product.id ? { ...i, quantity: i.quantity + 1 } : i
+        );
+      }
+      return [
+        ...prev,
+        {
+          product_id: product.id,
+          product_name: product.name,
+          quantity: 1,
+          unit_price: product.price,
+          cost_price: product.cost_price,
+          discount: 0,
+        },
+      ];
+    });
+    setSearchTerm('');
+    setSearchResults([]);
+    searchRef.current?.focus();
+  };
+
+  const updateQuantity = (index: number, delta: number) => {
+    setCart(prev => {
+      const item = prev[index];
+      const product = products.find(p => p.id === item.product_id);
+      const newQty = item.quantity + delta;
+      if (newQty <= 0) return prev.filter((_, i) => i !== index);
+      if (product && newQty > product.stock) {
+        toast({ variant: 'destructive', title: 'Estoque insuficiente' });
+        return prev;
+      }
+      return prev.map((it, i) => (i === index ? { ...it, quantity: newQty } : it));
+    });
+  };
+
+  const removeItem = (index: number) => {
+    setCart(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const applyDiscount = (index: number) => {
+    const val = parseFloat(discountValue);
+    if (isNaN(val) || val < 0 || val > 100) return;
+    setCart(prev => prev.map((it, i) => (i === index ? { ...it, discount: val } : it)));
+    setDiscountItem(null);
+    setDiscountValue('');
+  };
+
+  const getItemSubtotal = (item: CartItem) => {
+    const base = item.unit_price * item.quantity;
+    return base - base * (item.discount / 100);
+  };
+
+  const subtotal = cart.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  const totalDiscount = cart.reduce((s, i) => s + i.unit_price * i.quantity * (i.discount / 100), 0);
+  const total = subtotal - totalDiscount;
+  const profit = cart.reduce((s, i) => {
+    const sub = getItemSubtotal(i);
+    return s + (sub - i.cost_price * i.quantity);
+  }, 0);
+  const change = amountPaid ? Math.max(0, parseFloat(amountPaid) - total) : 0;
+
+  const clearCart = () => {
+    setCart([]);
+    setCustomerName('');
+    setPaymentMethod('');
+    setAmountPaid('');
+  };
+
+  const finalizeSale = async () => {
+    if (!paymentMethod) {
+      toast({ variant: 'destructive', title: 'Selecione a forma de pagamento' });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const { data: saleData, error: saleError } = await supabase
+        .from('sales')
+        .insert({
+          customer_name: customerName || null,
+          payment_method: paymentMethod,
+          total,
+          profit,
+          status: 'completed',
+          delivery_type: 'local',
+          tracking_status: 'completed',
+        })
+        .select()
+        .single();
+      if (saleError) throw saleError;
+
+      const saleItemsData = cart.map(item => ({
+        sale_id: saleData.id,
+        product_id: item.product_id,
+        product_name: item.product_name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        cost_price: item.cost_price,
+        subtotal: getItemSubtotal(item),
+      }));
+      const { error: itemsError } = await supabase.from('sale_items').insert(saleItemsData);
+      if (itemsError) throw itemsError;
+
+      // Update stock
+      for (const item of cart) {
+        const product = products.find(p => p.id === item.product_id);
+        if (product) {
+          await supabase
+            .from('products')
+            .update({ stock: product.stock - item.quantity })
+            .eq('id', item.product_id);
+        }
+      }
+
+      toast({ title: 'Venda finalizada!', description: `Total: ${formatCurrency(total)}` });
+      setIsFinishOpen(false);
+      clearCart();
+      fetchProducts();
+    } catch (error) {
+      console.error(error);
+      toast({ variant: 'destructive', title: 'Erro ao finalizar venda' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <PDVLayout>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-7rem)]">
+        {/* Left: Product search + results */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
+          {/* Search bar */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="relative">
+                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  ref={searchRef}
+                  placeholder="Buscar produto por nome, código ou marca... (F2)"
+                  className="pl-11 h-12 text-lg"
+                  value={searchTerm}
+                  onChange={e => handleSearch(e.target.value)}
+                  autoFocus
+                />
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
+                    onClick={() => { setSearchTerm(''); setSearchResults([]); }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              {/* Search results dropdown */}
+              {searchResults.length > 0 && (
+                <div className="mt-2 border border-border rounded-lg overflow-hidden bg-card shadow-lg">
+                  {searchResults.map(product => (
+                    <button
+                      key={product.id}
+                      className="w-full flex items-center justify-between p-3 hover:bg-muted transition-colors text-left border-b border-border last:border-0"
+                      onClick={() => addToCart(product)}
+                    >
+                      <div>
+                        <p className="font-medium">{product.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {product.brand && `${product.brand} · `}
+                          {product.category && `${product.category} · `}
+                          Estoque: {product.stock}
+                        </p>
+                      </div>
+                      <span className="font-bold text-primary">{formatCurrency(product.price)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Cart items table */}
+          <Card className="flex-1 overflow-hidden flex flex-col">
+            <CardHeader className="py-3 px-4 flex-row items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5" />
+                Itens da Venda
+                {cart.length > 0 && (
+                  <Badge variant="secondary">{cart.length}</Badge>
+                )}
+              </CardTitle>
+              {cart.length > 0 && (
+                <Button variant="ghost" size="sm" className="text-destructive" onClick={clearCart}>
+                  <Trash2 className="h-4 w-4 mr-1" /> Limpar
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="p-0 flex-1 overflow-auto">
+              {cart.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-12">
+                  <Barcode className="h-16 w-16 mb-4 opacity-30" />
+                  <p className="text-lg">Busque e adicione produtos</p>
+                  <p className="text-sm">Use o leitor de código de barras ou pesquise acima</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-8">#</TableHead>
+                      <TableHead>Produto</TableHead>
+                      <TableHead className="text-center w-32">Qtd</TableHead>
+                      <TableHead className="text-right">Preço Un.</TableHead>
+                      <TableHead className="text-right">Desc.</TableHead>
+                      <TableHead className="text-right">Subtotal</TableHead>
+                      <TableHead className="w-12"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {cart.map((item, index) => (
+                      <TableRow key={item.product_id}>
+                        <TableCell className="text-muted-foreground">{index + 1}</TableCell>
+                        <TableCell className="font-medium">{item.product_name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(index, -1)}>
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center font-medium">{item.quantity}</span>
+                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(index, 1)}>
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
+                        <TableCell className="text-right">
+                          {discountItem === index ? (
+                            <div className="flex items-center gap-1 justify-end">
+                              <Input
+                                className="w-16 h-7 text-xs"
+                                value={discountValue}
+                                onChange={e => setDiscountValue(e.target.value)}
+                                placeholder="%"
+                                autoFocus
+                                onKeyDown={e => e.key === 'Enter' && applyDiscount(index)}
+                              />
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => applyDiscount(index)}>
+                                <Check className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => { setDiscountItem(index); setDiscountValue(String(item.discount || '')); }}
+                            >
+                              {item.discount > 0 ? `${item.discount}%` : <Percent className="h-3 w-3" />}
+                            </Button>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-bold">
+                          {formatCurrency(getItemSubtotal(item))}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeItem(index)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right: Sale summary */}
+        <div className="flex flex-col gap-4">
+          <Card className="flex-1">
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-base">Resumo da Venda</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
+                {totalDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-destructive">
+                    <span>Desconto</span>
+                    <span>-{formatCurrency(totalDiscount)}</span>
+                  </div>
+                )}
+                <div className="border-t border-border pt-2 flex justify-between text-2xl font-bold">
+                  <span>Total</span>
+                  <span className="text-primary">{formatCurrency(total)}</span>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-4">
+                <div>
+                  <Label className="text-xs">Cliente (opcional)</Label>
+                  <Input
+                    value={customerName}
+                    onChange={e => setCustomerName(e.target.value)}
+                    placeholder="Nome do cliente"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Action buttons */}
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="destructive"
+              className="h-14"
+              disabled={cart.length === 0}
+              onClick={clearCart}
+            >
+              <X className="h-5 w-5 mr-2" />
+              Cancelar
+            </Button>
+            <Button
+              className="h-14 bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={cart.length === 0}
+              onClick={() => setIsFinishOpen(true)}
+            >
+              <Check className="h-5 w-5 mr-2" />
+              Finalizar (F9)
+            </Button>
+          </div>
+
+          {/* Keyboard shortcuts */}
+          <Card>
+            <CardContent className="p-3">
+              <p className="text-xs text-muted-foreground font-medium mb-1">Atalhos</p>
+              <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                <span><kbd className="px-1 py-0.5 bg-muted rounded text-[10px]">F2</kbd> Buscar</span>
+                <span><kbd className="px-1 py-0.5 bg-muted rounded text-[10px]">F9</kbd> Finalizar</span>
+                <span><kbd className="px-1 py-0.5 bg-muted rounded text-[10px]">ESC</kbd> Limpar busca</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Finish sale dialog */}
+      <Dialog open={isFinishOpen} onOpenChange={setIsFinishOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Finalizar Venda</DialogTitle>
+            <DialogDescription>Confirme o pagamento para concluir a venda</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="text-center p-4 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">Total a pagar</p>
+              <p className="text-3xl font-bold text-primary">{formatCurrency(total)}</p>
+            </div>
+
+            <div>
+              <Label>Forma de Pagamento *</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dinheiro">💵 Dinheiro</SelectItem>
+                  <SelectItem value="pix">📱 PIX</SelectItem>
+                  <SelectItem value="cartao_debito">💳 Cartão de Débito</SelectItem>
+                  <SelectItem value="cartao_credito">💳 Cartão de Crédito</SelectItem>
+                  <SelectItem value="transferencia">🏦 Transferência</SelectItem>
+                  <SelectItem value="misto">🔀 Pagamento Misto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {paymentMethod === 'dinheiro' && (
+              <div>
+                <Label>Valor Recebido</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  className="mt-1"
+                  value={amountPaid}
+                  onChange={e => setAmountPaid(e.target.value)}
+                  placeholder="R$ 0,00"
+                />
+                {parseFloat(amountPaid) >= total && (
+                  <div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">Troco</p>
+                    <p className="text-xl font-bold text-emerald-600">{formatCurrency(change)}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="border-t border-border pt-3 space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Itens</span>
+                <span>{cart.reduce((s, i) => s + i.quantity, 0)}</span>
+              </div>
+              {totalDiscount > 0 && (
+                <div className="flex justify-between text-destructive">
+                  <span>Desconto total</span>
+                  <span>-{formatCurrency(totalDiscount)}</span>
+                </div>
+              )}
+              {customerName && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Cliente</span>
+                  <span>{customerName}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsFinishOpen(false)}>Cancelar</Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={finalizeSale}
+              disabled={isSubmitting || !paymentMethod}
+            >
+              {isSubmitting ? 'Processando...' : 'Confirmar Venda'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </PDVLayout>
+  );
+};
+
+export default PDVCashier;
