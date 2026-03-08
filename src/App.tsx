@@ -51,6 +51,9 @@ const App = () => (
               <Route path="/admin/audit" element={<AuditLog />} />
               <Route path="/pdv" element={<PDVCashier />} />
               <Route path="/pdv/history" element={<PDVHistory />} />
+              <Route path="/pdv/report" element={<PDVReport />} />
+              <Route path="/pdv/customers" element={<PDVCustomers />} />
+              <Route path="/pdv/settings" element={<PDVSettings />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
