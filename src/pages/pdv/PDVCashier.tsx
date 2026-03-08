@@ -76,6 +76,33 @@ const PDVCashier = () => {
     loadProducts();
   }, []);
 
+  // Listen for new site orders in real-time
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:sales')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'sales',
+          filter: 'source=eq.site'
+        },
+        (payload) => {
+          toast({
+            title: '🔔 Novo Pedido Online!',
+            description: 'Um novo pedido acabou de chegar do site. Clique em "Pedidos do Site" para visualizar.',
+            duration: 8000,
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [toast]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'F2') {
