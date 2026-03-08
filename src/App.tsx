@@ -20,6 +20,9 @@ import Settings from "./pages/admin/Settings";
 import AuditLog from "./pages/admin/AuditLog";
 import PDVCashier from "./pages/pdv/PDVCashier";
 import PDVHistory from "./pages/pdv/PDVHistory";
+import PDVReport from "./pages/pdv/PDVReport";
+import PDVCustomers from "./pages/pdv/PDVCustomers";
+import PDVSettings from "./pages/pdv/PDVSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
