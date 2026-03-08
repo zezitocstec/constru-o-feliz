@@ -745,6 +745,67 @@ const PDVCashier = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Site orders dialog */}
+      <Dialog open={isSiteOrdersOpen} onOpenChange={setIsSiteOrdersOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Pedidos do Site
+            </DialogTitle>
+            <DialogDescription>Pedidos pendentes feitos pelo site. Importe para o caixa e finalize a venda.</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto space-y-3 py-2">
+            {loadingSiteOrders ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
+                Carregando...
+              </div>
+            ) : siteOrders.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p>Nenhum pedido pendente do site</p>
+              </div>
+            ) : (
+              siteOrders.map(order => (
+                <div key={order.id} className="border border-border rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-mono text-sm font-bold">#{order.id.substring(0, 8).toUpperCase()}</p>
+                      <p className="text-sm font-medium">{order.customer_name || 'Cliente sem nome'}</p>
+                      {order.customer_phone && (
+                        <p className="text-xs text-muted-foreground">{order.customer_phone}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-primary">{formatCurrency(order.total)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(order.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    {order.items.map((item, idx) => (
+                      <p key={idx}>{item.quantity}x {item.product_name} — {formatCurrency(item.subtotal)}</p>
+                    ))}
+                  </div>
+                  <Button size="sm" className="w-full" onClick={() => importSiteOrder(order)}>
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Importar para o Caixa
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => loadSiteOrders()} disabled={loadingSiteOrders}>
+              <RefreshCw className={`h-4 w-4 mr-1 ${loadingSiteOrders ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PDVLayout>
   );
 };
