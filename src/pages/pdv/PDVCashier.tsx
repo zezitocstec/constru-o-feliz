@@ -289,10 +289,35 @@ const PDVCashier = () => {
         }
       }
 
-      toast({ title: '✅ Venda finalizada com sucesso!', description: `Total: ${formatCurrency(total)}` });
+      // Generate and download receipt PDF
+      try {
+        const receiptBlob = await generateReceiptPDF({
+          saleId: saleData.id,
+          items: cart.map(item => ({
+            product_name: item.product_name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            discount: item.discount,
+            subtotal: getItemSubtotal(item),
+          })),
+          subtotal,
+          totalDiscount,
+          total,
+          paymentMethod,
+          customerName: customerName || undefined,
+          amountPaid: amountPaid ? parseFloat(amountPaid) : undefined,
+          change: amountPaid ? change : undefined,
+          createdAt: new Date(),
+        });
+        downloadReceiptPDF(receiptBlob, saleData.id);
+      } catch (pdfErr) {
+        console.error('PDF generation error:', pdfErr);
+      }
+
+      toast({ title: '✅ Venda finalizada com sucesso!', description: `Total: ${formatCurrency(total)} — Cupom gerado!` });
       setIsFinishOpen(false);
       clearCart();
-      loadProducts(); // Refresh products cache
+      loadProducts();
     } catch (error: any) {
       console.error('Finalize error:', error);
       toast({ variant: 'destructive', title: 'Erro ao finalizar venda', description: error.message || 'Tente novamente' });
