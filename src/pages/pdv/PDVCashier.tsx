@@ -299,40 +299,56 @@ const PDVCashier = () => {
     }
     setIsSubmitting(true);
     try {
-      // Insert sale
-      const { data: saleData, error: saleError } = await supabase
-        .from('sales')
-        .insert({
-          customer_name: customerName || null,
-          payment_method: paymentMethod,
-          total,
-          profit,
-          status: 'completed',
-          delivery_type: 'local',
-          tracking_status: 'completed',
-        })
-        .select()
-        .single();
-      
-      if (saleError) {
-        console.error('Sale insert error:', saleError);
-        throw new Error(`Erro ao criar venda: ${saleError.message}`);
-      }
+      let saleId: string;
 
-      // Insert sale items
-      const saleItemsData = cart.map(item => ({
-        sale_id: saleData.id,
-        product_id: item.product_id,
-        product_name: item.product_name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        cost_price: item.cost_price,
-        subtotal: getItemSubtotal(item),
-      }));
-      const { error: itemsError } = await supabase.from('sale_items').insert(saleItemsData);
-      if (itemsError) {
-        console.error('Sale items error:', itemsError);
-        throw new Error(`Erro ao salvar itens: ${itemsError.message}`);
+      if (activeSiteOrderId) {
+        // Update existing site order to completed
+        const { error: updateError } = await supabase
+          .from('sales')
+          .update({
+            payment_method: paymentMethod,
+            total,
+            profit,
+            status: 'completed',
+            tracking_status: 'completed',
+            source: 'site',
+          })
+          .eq('id', activeSiteOrderId);
+
+        if (updateError) throw new Error(`Erro ao atualizar pedido: ${updateError.message}`);
+        saleId = activeSiteOrderId;
+      } else {
+        // Insert new PDV sale
+        const { data: saleData, error: saleError } = await supabase
+          .from('sales')
+          .insert({
+            customer_name: customerName || null,
+            payment_method: paymentMethod,
+            total,
+            profit,
+            status: 'completed',
+            delivery_type: 'local',
+            tracking_status: 'completed',
+            source: 'pdv',
+          })
+          .select()
+          .single();
+
+        if (saleError) throw new Error(`Erro ao criar venda: ${saleError.message}`);
+        saleId = saleData.id;
+
+        // Insert sale items only for new PDV sales
+        const saleItemsData = cart.map(item => ({
+          sale_id: saleId,
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          cost_price: item.cost_price,
+          subtotal: getItemSubtotal(item),
+        }));
+        const { error: itemsError } = await supabase.from('sale_items').insert(saleItemsData);
+        if (itemsError) throw new Error(`Erro ao salvar itens: ${itemsError.message}`);
       }
 
       // Update stock for each product
@@ -340,20 +356,14 @@ const PDVCashier = () => {
         const product = productsCache.find(p => p.id === item.product_id);
         if (product) {
           const newStock = Math.max(0, product.stock - item.quantity);
-          const { error: stockError } = await supabase
-            .from('products')
-            .update({ stock: newStock })
-            .eq('id', item.product_id);
-          if (stockError) {
-            console.error('Stock update error:', stockError);
-          }
+          await supabase.from('products').update({ stock: newStock }).eq('id', item.product_id);
         }
       }
 
-      // Generate and download receipt PDF
+      // Generate receipt PDF
       try {
         const receiptBlob = await generateReceiptPDF({
-          saleId: saleData.id,
+          saleId,
           items: cart.map(item => ({
             product_name: item.product_name,
             quantity: item.quantity,
@@ -370,7 +380,7 @@ const PDVCashier = () => {
           change: amountPaid ? change : undefined,
           createdAt: new Date(),
         });
-        downloadReceiptPDF(receiptBlob, saleData.id);
+        downloadReceiptPDF(receiptBlob, saleId);
       } catch (pdfErr) {
         console.error('PDF generation error:', pdfErr);
       }
