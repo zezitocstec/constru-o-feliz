@@ -38,6 +38,15 @@ interface CartItem {
   discount: number;
 }
 
+interface SiteOrder {
+  id: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  total: number;
+  created_at: string;
+  items: { product_name: string; quantity: number; unit_price: number; product_id: string | null; subtotal: number }[];
+}
+
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
@@ -54,6 +63,10 @@ const PDVCashier = () => {
   const [discountValue, setDiscountValue] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [productsCache, setProductsCache] = useState<Product[]>([]);
+  const [siteOrders, setSiteOrders] = useState<SiteOrder[]>([]);
+  const [isSiteOrdersOpen, setIsSiteOrdersOpen] = useState(false);
+  const [loadingSiteOrders, setLoadingSiteOrders] = useState(false);
+  const [activeSiteOrderId, setActiveSiteOrderId] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const { toast } = useToast();
