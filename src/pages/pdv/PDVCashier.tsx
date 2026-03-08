@@ -122,6 +122,7 @@ const PDVCashier = () => {
           filter: 'source=eq.site'
         },
         (payload) => {
+          playNotificationSound();
           toast({
             title: '🔔 Novo Pedido Online!',
             description: 'Um novo pedido acabou de chegar do site. Clique em "Pedidos do Site" para visualizar.',
