@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Plus, Minus, Trash2, ShoppingCart, Barcode, Percent, X, Check, RefreshCw, FileDown } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Barcode, Percent, X, Check, RefreshCw, FileDown, Globe, Package } from 'lucide-react';
 import { generateReceiptPDF, downloadReceiptPDF } from '@/utils/generateReceiptPDF';
 import { supabase } from '@/integrations/supabase/client';
 import { PDVLayout } from '@/components/pdv/PDVLayout';
@@ -38,6 +38,15 @@ interface CartItem {
   discount: number;
 }
 
+interface SiteOrder {
+  id: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  total: number;
+  created_at: string;
+  items: { product_name: string; quantity: number; unit_price: number; product_id: string | null; subtotal: number }[];
+}
+
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
@@ -54,6 +63,10 @@ const PDVCashier = () => {
   const [discountValue, setDiscountValue] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [productsCache, setProductsCache] = useState<Product[]>([]);
+  const [siteOrders, setSiteOrders] = useState<SiteOrder[]>([]);
+  const [isSiteOrdersOpen, setIsSiteOrdersOpen] = useState(false);
+  const [loadingSiteOrders, setLoadingSiteOrders] = useState(false);
+  const [activeSiteOrderId, setActiveSiteOrderId] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const { toast } = useToast();
@@ -96,6 +109,53 @@ const PDVCashier = () => {
       return;
     }
     setProductsCache(data || []);
+  };
+
+  const loadSiteOrders = async () => {
+    setLoadingSiteOrders(true);
+    try {
+      const { data: orders, error } = await supabase
+        .from('sales')
+        .select('id, customer_name, customer_phone, total, created_at')
+        .eq('source', 'site')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const ordersWithItems: SiteOrder[] = [];
+      for (const order of orders || []) {
+        const { data: items } = await supabase
+          .from('sale_items')
+          .select('product_name, quantity, unit_price, product_id, subtotal')
+          .eq('sale_id', order.id);
+        ordersWithItems.push({ ...order, items: items || [] });
+      }
+      setSiteOrders(ordersWithItems);
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Erro ao carregar pedidos do site', description: error.message });
+    } finally {
+      setLoadingSiteOrders(false);
+    }
+  };
+
+  const importSiteOrder = (order: SiteOrder) => {
+    const newCart: CartItem[] = order.items.map(item => {
+      const product = productsCache.find(p => p.id === item.product_id);
+      return {
+        product_id: item.product_id || '',
+        product_name: item.product_name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        cost_price: product?.cost_price || 0,
+        discount: 0,
+      };
+    });
+    setCart(newCart);
+    setCustomerName(order.customer_name || '');
+    setActiveSiteOrderId(order.id);
+    setIsSiteOrdersOpen(false);
+    toast({ title: `Pedido #${order.id.substring(0, 8).toUpperCase()} importado`, description: `Cliente: ${order.customer_name || 'N/A'}` });
   };
 
   const searchProducts = useCallback(async (term: string) => {
@@ -229,6 +289,7 @@ const PDVCashier = () => {
     setCustomerName('');
     setPaymentMethod('');
     setAmountPaid('');
+    setActiveSiteOrderId(null);
   };
 
   const finalizeSale = async () => {
@@ -238,40 +299,56 @@ const PDVCashier = () => {
     }
     setIsSubmitting(true);
     try {
-      // Insert sale
-      const { data: saleData, error: saleError } = await supabase
-        .from('sales')
-        .insert({
-          customer_name: customerName || null,
-          payment_method: paymentMethod,
-          total,
-          profit,
-          status: 'completed',
-          delivery_type: 'local',
-          tracking_status: 'completed',
-        })
-        .select()
-        .single();
-      
-      if (saleError) {
-        console.error('Sale insert error:', saleError);
-        throw new Error(`Erro ao criar venda: ${saleError.message}`);
-      }
+      let saleId: string;
 
-      // Insert sale items
-      const saleItemsData = cart.map(item => ({
-        sale_id: saleData.id,
-        product_id: item.product_id,
-        product_name: item.product_name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        cost_price: item.cost_price,
-        subtotal: getItemSubtotal(item),
-      }));
-      const { error: itemsError } = await supabase.from('sale_items').insert(saleItemsData);
-      if (itemsError) {
-        console.error('Sale items error:', itemsError);
-        throw new Error(`Erro ao salvar itens: ${itemsError.message}`);
+      if (activeSiteOrderId) {
+        // Update existing site order to completed
+        const { error: updateError } = await supabase
+          .from('sales')
+          .update({
+            payment_method: paymentMethod,
+            total,
+            profit,
+            status: 'completed',
+            tracking_status: 'completed',
+            source: 'site',
+          })
+          .eq('id', activeSiteOrderId);
+
+        if (updateError) throw new Error(`Erro ao atualizar pedido: ${updateError.message}`);
+        saleId = activeSiteOrderId;
+      } else {
+        // Insert new PDV sale
+        const { data: saleData, error: saleError } = await supabase
+          .from('sales')
+          .insert({
+            customer_name: customerName || null,
+            payment_method: paymentMethod,
+            total,
+            profit,
+            status: 'completed',
+            delivery_type: 'local',
+            tracking_status: 'completed',
+            source: 'pdv',
+          })
+          .select()
+          .single();
+
+        if (saleError) throw new Error(`Erro ao criar venda: ${saleError.message}`);
+        saleId = saleData.id;
+
+        // Insert sale items only for new PDV sales
+        const saleItemsData = cart.map(item => ({
+          sale_id: saleId,
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          cost_price: item.cost_price,
+          subtotal: getItemSubtotal(item),
+        }));
+        const { error: itemsError } = await supabase.from('sale_items').insert(saleItemsData);
+        if (itemsError) throw new Error(`Erro ao salvar itens: ${itemsError.message}`);
       }
 
       // Update stock for each product
@@ -279,20 +356,14 @@ const PDVCashier = () => {
         const product = productsCache.find(p => p.id === item.product_id);
         if (product) {
           const newStock = Math.max(0, product.stock - item.quantity);
-          const { error: stockError } = await supabase
-            .from('products')
-            .update({ stock: newStock })
-            .eq('id', item.product_id);
-          if (stockError) {
-            console.error('Stock update error:', stockError);
-          }
+          await supabase.from('products').update({ stock: newStock }).eq('id', item.product_id);
         }
       }
 
-      // Generate and download receipt PDF
+      // Generate receipt PDF
       try {
         const receiptBlob = await generateReceiptPDF({
-          saleId: saleData.id,
+          saleId,
           items: cart.map(item => ({
             product_name: item.product_name,
             quantity: item.quantity,
@@ -309,7 +380,7 @@ const PDVCashier = () => {
           change: amountPaid ? change : undefined,
           createdAt: new Date(),
         });
-        downloadReceiptPDF(receiptBlob, saleData.id);
+        downloadReceiptPDF(receiptBlob, saleId);
       } catch (pdfErr) {
         console.error('PDF generation error:', pdfErr);
       }
@@ -539,7 +610,26 @@ const PDVCashier = () => {
             </CardContent>
           </Card>
 
-          {/* Action buttons */}
+          {/* Site orders + Action buttons */}
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => { setIsSiteOrdersOpen(true); loadSiteOrders(); }}
+          >
+            <Globe className="h-4 w-4 mr-2" />
+            Pedidos do Site
+            {siteOrders.length > 0 && (
+              <Badge variant="destructive" className="ml-2">{siteOrders.length}</Badge>
+            )}
+          </Button>
+
+          {activeSiteOrderId && (
+            <div className="bg-accent/50 border border-accent rounded-lg p-2 text-center">
+              <p className="text-xs text-muted-foreground">Pedido do site</p>
+              <p className="font-mono font-bold text-sm">#{activeSiteOrderId.substring(0, 8).toUpperCase()}</p>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant="destructive"
@@ -651,6 +741,67 @@ const PDVCashier = () => {
               disabled={isSubmitting || !paymentMethod}
             >
               {isSubmitting ? 'Processando...' : 'Confirmar Venda'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Site orders dialog */}
+      <Dialog open={isSiteOrdersOpen} onOpenChange={setIsSiteOrdersOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Pedidos do Site
+            </DialogTitle>
+            <DialogDescription>Pedidos pendentes feitos pelo site. Importe para o caixa e finalize a venda.</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto space-y-3 py-2">
+            {loadingSiteOrders ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
+                Carregando...
+              </div>
+            ) : siteOrders.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p>Nenhum pedido pendente do site</p>
+              </div>
+            ) : (
+              siteOrders.map(order => (
+                <div key={order.id} className="border border-border rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-mono text-sm font-bold">#{order.id.substring(0, 8).toUpperCase()}</p>
+                      <p className="text-sm font-medium">{order.customer_name || 'Cliente sem nome'}</p>
+                      {order.customer_phone && (
+                        <p className="text-xs text-muted-foreground">{order.customer_phone}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-primary">{formatCurrency(order.total)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(order.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    {order.items.map((item, idx) => (
+                      <p key={idx}>{item.quantity}x {item.product_name} — {formatCurrency(item.subtotal)}</p>
+                    ))}
+                  </div>
+                  <Button size="sm" className="w-full" onClick={() => importSiteOrder(order)}>
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Importar para o Caixa
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => loadSiteOrders()} disabled={loadingSiteOrders}>
+              <RefreshCw className={`h-4 w-4 mr-1 ${loadingSiteOrders ? 'animate-spin' : ''}`} />
+              Atualizar
             </Button>
           </DialogFooter>
         </DialogContent>
