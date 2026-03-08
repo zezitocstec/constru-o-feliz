@@ -111,6 +111,53 @@ const PDVCashier = () => {
     setProductsCache(data || []);
   };
 
+  const loadSiteOrders = async () => {
+    setLoadingSiteOrders(true);
+    try {
+      const { data: orders, error } = await supabase
+        .from('sales')
+        .select('id, customer_name, customer_phone, total, created_at')
+        .eq('source', 'site')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const ordersWithItems: SiteOrder[] = [];
+      for (const order of orders || []) {
+        const { data: items } = await supabase
+          .from('sale_items')
+          .select('product_name, quantity, unit_price, product_id, subtotal')
+          .eq('sale_id', order.id);
+        ordersWithItems.push({ ...order, items: items || [] });
+      }
+      setSiteOrders(ordersWithItems);
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Erro ao carregar pedidos do site', description: error.message });
+    } finally {
+      setLoadingSiteOrders(false);
+    }
+  };
+
+  const importSiteOrder = (order: SiteOrder) => {
+    const newCart: CartItem[] = order.items.map(item => {
+      const product = productsCache.find(p => p.id === item.product_id);
+      return {
+        product_id: item.product_id || '',
+        product_name: item.product_name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        cost_price: product?.cost_price || 0,
+        discount: 0,
+      };
+    });
+    setCart(newCart);
+    setCustomerName(order.customer_name || '');
+    setActiveSiteOrderId(order.id);
+    setIsSiteOrdersOpen(false);
+    toast({ title: `Pedido #${order.id.substring(0, 8).toUpperCase()} importado`, description: `Cliente: ${order.customer_name || 'N/A'}` });
+  };
+
   const searchProducts = useCallback(async (term: string) => {
     if (term.length < 2) {
       setSearchResults([]);
