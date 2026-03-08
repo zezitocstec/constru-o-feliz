@@ -289,6 +289,7 @@ const PDVCashier = () => {
     setCustomerName('');
     setPaymentMethod('');
     setAmountPaid('');
+    setActiveSiteOrderId(null);
   };
 
   const finalizeSale = async () => {
