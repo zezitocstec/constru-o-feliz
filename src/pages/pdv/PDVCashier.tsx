@@ -610,7 +610,26 @@ const PDVCashier = () => {
             </CardContent>
           </Card>
 
-          {/* Action buttons */}
+          {/* Site orders + Action buttons */}
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => { setIsSiteOrdersOpen(true); loadSiteOrders(); }}
+          >
+            <Globe className="h-4 w-4 mr-2" />
+            Pedidos do Site
+            {siteOrders.length > 0 && (
+              <Badge variant="destructive" className="ml-2">{siteOrders.length}</Badge>
+            )}
+          </Button>
+
+          {activeSiteOrderId && (
+            <div className="bg-accent/50 border border-accent rounded-lg p-2 text-center">
+              <p className="text-xs text-muted-foreground">Pedido do site</p>
+              <p className="font-mono font-bold text-sm">#{activeSiteOrderId.substring(0, 8).toUpperCase()}</p>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant="destructive"
