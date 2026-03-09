@@ -18,6 +18,7 @@ const Footer = () => {
     ],
     help: [
       { label: "Central de Ajuda", href: "#" },
+      { label: "Rastrear Pedido", href: "/rastreio" },
       { label: "Como Comprar", href: "#" },
       { label: "Formas de Pagamento", href: "#" },
       { label: "Entregas", href: "#" },

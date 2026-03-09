@@ -50,6 +50,10 @@ const Header = () => {
       label: "Contato",
       href: "#contato",
     },
+    {
+      label: "Rastrear Pedido",
+      href: "/rastreio",
+    },
   ];
   return (
     <header className="sticky top-0 z-50 w-full">
