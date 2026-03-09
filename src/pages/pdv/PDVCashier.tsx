@@ -348,11 +348,28 @@ const PDVCashier = () => {
   }, 0);
   const change = amountPaid ? Math.max(0, parseFloat(amountPaid) - total) : 0;
 
+  const totalMixedPayments = mixedPayments.reduce((acc, curr) => acc + curr.amount, 0);
+
+  const addMixedPayment = () => {
+    const amount = parseFloat(currentMixedAmount);
+    if (!currentMixedMethod || isNaN(amount) || amount <= 0) return;
+    setMixedPayments(prev => [...prev, { method: currentMixedMethod, amount }]);
+    setCurrentMixedMethod('');
+    setCurrentMixedAmount('');
+  };
+
+  const removeMixedPayment = (index: number) => {
+    setMixedPayments(prev => prev.filter((_, i) => i !== index));
+  };
+
   const clearCart = () => {
     setCart([]);
     setCustomerName('');
     setPaymentMethod('');
     setAmountPaid('');
+    setMixedPayments([]);
+    setCurrentMixedMethod('');
+    setCurrentMixedAmount('');
     setActiveSiteOrderId(null);
   };
 
