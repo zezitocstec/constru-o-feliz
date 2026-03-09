@@ -378,16 +378,23 @@ const PDVCashier = () => {
       toast({ variant: 'destructive', title: 'Selecione a forma de pagamento' });
       return;
     }
+    if (paymentMethod === 'misto' && totalMixedPayments < total) {
+      toast({ variant: 'destructive', title: 'O valor pago no pagamento misto é menor que o total' });
+      return;
+    }
     setIsSubmitting(true);
     try {
       let saleId: string;
+      const finalPaymentMethod = paymentMethod === 'misto' 
+        ? `Misto: ${mixedPayments.map(p => `${p.method} (${formatCurrency(p.amount)})`).join(' + ')}`
+        : paymentMethod;
 
       if (activeSiteOrderId) {
         // Update existing site order to completed
         const { error: updateError } = await supabase
           .from('sales')
           .update({
-            payment_method: paymentMethod,
+            payment_method: finalPaymentMethod,
             total,
             profit,
             status: 'completed',
@@ -404,7 +411,7 @@ const PDVCashier = () => {
           .from('sales')
           .insert({
             customer_name: customerName || null,
-            payment_method: paymentMethod,
+            payment_method: finalPaymentMethod,
             total,
             profit,
             status: 'completed',
