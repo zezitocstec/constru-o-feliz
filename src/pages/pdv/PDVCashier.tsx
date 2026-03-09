@@ -27,6 +27,7 @@ interface Product {
   stock: number;
   category: string | null;
   brand: string | null;
+  tag: string | null;
 }
 
 interface CartItem {
