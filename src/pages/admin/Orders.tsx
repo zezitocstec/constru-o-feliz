@@ -35,6 +35,7 @@ interface Order {
   delivery_phone: string | null;
   delivery_notes: string | null;
   created_at: string;
+  whatsapp_opt_in: boolean;
 }
 
 interface SaleItem {
@@ -113,7 +114,7 @@ const Orders = () => {
   const handleUpdateStatus = async () => {
     if (!selectedOrder) return;
     try {
-      const updateData: Record<string, string> = { tracking_status: newStatus };
+      const updateData: Record<string, any> = { tracking_status: newStatus };
       if (newStatus === 'cancelled') updateData.status = 'cancelled';
       if (newStatus === 'delivered') updateData.status = 'completed';
 
@@ -122,6 +123,12 @@ const Orders = () => {
         .update(updateData)
         .eq('id', selectedOrder.id);
       if (error) throw error;
+
+      if ((newStatus === 'on_the_way' || newStatus === 'delivered') && selectedOrder.whatsapp_opt_in) {
+        supabase.functions.invoke('notify-order-status', {
+          body: { orderId: selectedOrder.id, newStatus }
+        }).catch(err => console.error("Error invoking notify function:", err));
+      }
 
       toast({ title: 'Sucesso', description: 'Status atualizado com sucesso.' });
       setIsStatusOpen(false);
@@ -302,6 +309,10 @@ const Orders = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Telefone</p>
                   <p className="font-medium">{selectedOrder.customer_phone || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">WhatsApp</p>
+                  <p className="font-medium">{selectedOrder.whatsapp_opt_in ? 'Ativado' : 'Não'}</p>
                 </div>
               </div>
 
