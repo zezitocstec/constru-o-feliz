@@ -115,33 +115,7 @@ const PDVCashier = () => {
     loadProducts();
   }, []);
 
-  // Listen for new site orders in real-time
-  useEffect(() => {
-    const channel = supabase
-      .channel('public:sales')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'sales',
-          filter: 'source=eq.site'
-        },
-        (payload) => {
-          playNotificationSound();
-          toast({
-            title: '🔔 Novo Pedido Online!',
-            description: 'Um novo pedido acabou de chegar do site. Clique em "Pedidos do Site" para visualizar.',
-            duration: 8000,
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [toast]);
+  // Real-time listener for orders moved to PDVLayout.tsx for global PDV notifications
 
 
   const loadProducts = async () => {
