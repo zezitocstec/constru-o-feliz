@@ -106,6 +106,39 @@ export type Database = {
         }
         Relationships: []
       }
+      pdv_settings: {
+        Row: {
+          company_address: string
+          company_cnpj: string
+          company_logo: string | null
+          company_name: string
+          company_phone: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          company_address?: string
+          company_cnpj?: string
+          company_logo?: string | null
+          company_name?: string
+          company_phone?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          company_address?: string
+          company_cnpj?: string
+          company_logo?: string | null
+          company_name?: string
+          company_phone?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_reviews: {
         Row: {
           comment: string | null
