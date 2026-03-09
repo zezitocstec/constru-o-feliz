@@ -106,6 +106,8 @@ const PDVCashier = () => {
   const [activeSiteOrderId, setActiveSiteOrderId] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const barcodeBuffer = useRef('');
+  const lastKeyTime = useRef(Date.now());
   const { toast } = useToast();
 
   // Load all products into cache on mount
