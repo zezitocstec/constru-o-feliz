@@ -60,6 +60,7 @@ const Checkout = () => {
           source: "site",
           delivery_type: "delivery",
           tracking_status: "pending",
+          whatsapp_opt_in: whatsappOptIn,
         })
         .select("id")
         .single();
