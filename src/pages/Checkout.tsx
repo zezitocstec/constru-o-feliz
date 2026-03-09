@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ const Checkout = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderId, setOrderId] = useState("");
@@ -37,6 +39,10 @@ const Checkout = () => {
   const handleSubmitOrder = async () => {
     if (!customerName.trim()) {
       toast({ variant: "destructive", title: "Informe seu nome" });
+      return;
+    }
+    if (whatsappOptIn && !customerPhone.trim()) {
+      toast({ variant: "destructive", title: "Informe o telefone para receber as notificações via WhatsApp" });
       return;
     }
 
@@ -54,6 +60,7 @@ const Checkout = () => {
           source: "site",
           delivery_type: "delivery",
           tracking_status: "pending",
+          whatsapp_opt_in: whatsappOptIn,
         })
         .select("id")
         .single();
@@ -252,6 +259,17 @@ const Checkout = () => {
                 placeholder="(00) 00000-0000"
                 onKeyDown={(e) => e.key === "Enter" && handleSubmitOrder()}
               />
+            </div>
+
+            <div className="flex items-center space-x-2 pt-1 pb-2">
+              <Checkbox
+                id="whatsapp-opt-in"
+                checked={whatsappOptIn}
+                onCheckedChange={(checked) => setWhatsappOptIn(checked as boolean)}
+              />
+              <Label htmlFor="whatsapp-opt-in" className="text-sm font-normal cursor-pointer leading-none">
+                Desejo receber atualizações do pedido via WhatsApp
+              </Label>
             </div>
 
             <div className="bg-muted rounded-lg p-3">

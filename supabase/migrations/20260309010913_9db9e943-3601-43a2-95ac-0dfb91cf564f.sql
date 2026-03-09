@@ -1,0 +1,1 @@
+ALTER TABLE public.sales ADD COLUMN whatsapp_opt_in BOOLEAN NOT NULL DEFAULT false;
