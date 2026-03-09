@@ -462,10 +462,10 @@ const PDVCashier = () => {
           subtotal,
           totalDiscount,
           total,
-          paymentMethod,
+          paymentMethod: finalPaymentMethod,
           customerName: customerName || undefined,
-          amountPaid: amountPaid ? parseFloat(amountPaid) : undefined,
-          change: amountPaid ? change : undefined,
+          amountPaid: paymentMethod === 'misto' ? totalMixedPayments : (amountPaid ? parseFloat(amountPaid) : undefined),
+          change: paymentMethod === 'misto' ? Math.max(0, totalMixedPayments - total) : (amountPaid ? change : undefined),
           createdAt: new Date(),
         });
         downloadReceiptPDF(receiptBlob, saleId);
