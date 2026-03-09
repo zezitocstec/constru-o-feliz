@@ -501,6 +501,12 @@ const PDVCashier = () => {
                   className="pl-11 pr-20 h-12 text-lg"
                   value={searchTerm}
                   onChange={e => handleSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void handleBarcodeSubmit(e.currentTarget.value);
+                    }
+                  }}
                   autoFocus
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
