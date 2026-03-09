@@ -236,7 +236,8 @@ const PDVCashier = () => {
         p.name.toLowerCase().includes(lower) ||
         p.id.toLowerCase().includes(lower) ||
         (p.brand && p.brand.toLowerCase().includes(lower)) ||
-        (p.category && p.category.toLowerCase().includes(lower))
+        (p.category && p.category.toLowerCase().includes(lower)) ||
+        (p.tag && p.tag.toLowerCase().includes(lower))
     );
 
     if (localResults.length > 0) {
@@ -249,10 +250,10 @@ const PDVCashier = () => {
     setIsSearching(true);
     const { data, error } = await supabase
       .from('products')
-      .select('id, name, price, cost_price, stock, category, brand')
+      .select('id, name, price, cost_price, stock, category, brand, tag')
       .eq('is_active', true)
       .gt('stock', 0)
-      .or(`name.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%,id.ilike.%${term}%`)
+      .or(`name.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%,id.ilike.%${term}%,tag.ilike.%${term}%`)
       .order('name')
       .limit(10);
 
