@@ -27,6 +27,7 @@ interface Product {
   stock: number;
   category: string | null;
   brand: string | null;
+  tag: string | null;
 }
 
 interface CartItem {
@@ -162,7 +163,7 @@ const PDVCashier = () => {
   const loadProducts = async () => {
     const { data, error } = await supabase
       .from('products')
-      .select('id, name, price, cost_price, stock, category, brand')
+      .select('id, name, price, cost_price, stock, category, brand, tag')
       .eq('is_active', true)
       .gt('stock', 0)
       .order('name');
@@ -236,7 +237,8 @@ const PDVCashier = () => {
         p.name.toLowerCase().includes(lower) ||
         p.id.toLowerCase().includes(lower) ||
         (p.brand && p.brand.toLowerCase().includes(lower)) ||
-        (p.category && p.category.toLowerCase().includes(lower))
+        (p.category && p.category.toLowerCase().includes(lower)) ||
+        (p.tag && p.tag.toLowerCase().includes(lower))
     );
 
     if (localResults.length > 0) {
@@ -249,10 +251,10 @@ const PDVCashier = () => {
     setIsSearching(true);
     const { data, error } = await supabase
       .from('products')
-      .select('id, name, price, cost_price, stock, category, brand')
+      .select('id, name, price, cost_price, stock, category, brand, tag')
       .eq('is_active', true)
       .gt('stock', 0)
-      .or(`name.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%,id.ilike.%${term}%`)
+      .or(`name.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%,id.ilike.%${term}%,tag.ilike.%${term}%`)
       .order('name')
       .limit(10);
 
@@ -279,7 +281,7 @@ const PDVCashier = () => {
     }, 200);
   }, [searchProducts]);
 
-  const addToCart = (product: Product) => {
+  const addToCart = useCallback((product: Product) => {
     setCart(prev => {
       const existing = prev.find(i => i.product_id === product.id);
       if (existing) {
@@ -306,7 +308,51 @@ const PDVCashier = () => {
     setSearchTerm('');
     setSearchResults([]);
     searchRef.current?.focus();
-  };
+  }, [toast]);
+
+  const handleBarcodeSubmit = useCallback(async (raw: string) => {
+    const code = raw.trim();
+    if (!code) return;
+
+    const lower = code.toLowerCase();
+
+    const exactMatch = productsCache.find(p =>
+      p.id.toLowerCase() === lower || (p.tag && p.tag.toLowerCase() === lower)
+    );
+
+    if (exactMatch) {
+      addToCart(exactMatch);
+      return;
+    }
+
+    // Fallback: if results already listed, add first one quickly
+    if (searchResults.length > 0) {
+      addToCart(searchResults[0]);
+      return;
+    }
+
+    // Fallback: direct lookup by tag in the database (covers cases before cache loads)
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, price, cost_price, stock, category, brand, tag')
+      .eq('is_active', true)
+      .gt('stock', 0)
+      .eq('tag', code)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Barcode lookup error:', error);
+    }
+
+    if (data) {
+      addToCart(data);
+      return;
+    }
+
+    setSearchTerm(code);
+    setSearchResults([]);
+    toast({ variant: 'destructive', title: 'Produto não encontrado', description: `Código: ${code}` });
+  }, [addToCart, productsCache, searchResults, toast]);
 
   const updateQuantity = (index: number, delta: number) => {
     setCart(prev => {
@@ -501,6 +547,12 @@ const PDVCashier = () => {
                   className="pl-11 pr-20 h-12 text-lg"
                   value={searchTerm}
                   onChange={e => handleSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void handleBarcodeSubmit(e.currentTarget.value);
+                    }
+                  }}
                   autoFocus
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
