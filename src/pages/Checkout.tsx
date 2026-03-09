@@ -41,6 +41,10 @@ const Checkout = () => {
       toast({ variant: "destructive", title: "Informe seu nome" });
       return;
     }
+    if (whatsappOptIn && !customerPhone.trim()) {
+      toast({ variant: "destructive", title: "Informe o telefone para receber as notificações via WhatsApp" });
+      return;
+    }
 
     setIsSubmitting(true);
     try {
