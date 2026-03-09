@@ -24,7 +24,7 @@ import PDVReport from "./pages/pdv/PDVReport";
 import PDVCustomers from "./pages/pdv/PDVCustomers";
 import PDVSettings from "./pages/pdv/PDVSettings";
 import NotFound from "./pages/NotFound";
-
+import TrackOrder from "./pages/TrackOrder";
 const queryClient = new QueryClient();
 
 const App = () => (
