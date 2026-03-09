@@ -52,7 +52,7 @@ const fetchAverageRatings = async (productIds: string[]) => {
 const FeaturedProducts = () => {
   const { addItem } = useCart();
 
-  const { data: products = [] } = useQuery({
+  const { data: products = [], isLoading: isLoadingProducts } = useQuery({
     queryKey: ["featured-products"],
     queryFn: fetchFeaturedProducts,
   });
