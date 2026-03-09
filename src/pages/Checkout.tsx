@@ -114,13 +114,17 @@ const Checkout = () => {
               <p className="text-sm text-muted-foreground">Código do pedido</p>
               <p className="text-2xl font-bold text-primary font-mono">#{orderId}</p>
             </div>
-            <p className="text-muted-foreground mb-8">
-              Seu pedido foi recebido e será processado pela nossa equipe.
-              Entraremos em contato para confirmar os detalhes e forma de pagamento.
-            </p>
-            <Button size="lg" onClick={() => navigate("/")}>
-              Voltar para a Loja
-            </Button>
+             <p className="text-muted-foreground mb-4">
+118:               Seu pedido foi recebido e será processado pela nossa equipe.
+119:               Entraremos em contato para confirmar os detalhes e forma de pagamento.
+120:             </p>
+121:             <p className="text-sm text-muted-foreground mb-8">
+122:               Você pode acompanhar o status do pedido na página de{" "}
+123:               <a href="/rastreio" className="text-primary underline font-medium">Rastreio</a>.
+124:             </p>
+125:             <Button size="lg" onClick={() => navigate("/")}>
+126:               Voltar para a Loja
+127:             </Button>
           </div>
         </main>
         <Footer />

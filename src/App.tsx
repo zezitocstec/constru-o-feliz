@@ -24,7 +24,7 @@ import PDVReport from "./pages/pdv/PDVReport";
 import PDVCustomers from "./pages/pdv/PDVCustomers";
 import PDVSettings from "./pages/pdv/PDVSettings";
 import NotFound from "./pages/NotFound";
-
+import TrackOrder from "./pages/TrackOrder";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -54,6 +54,7 @@ const App = () => (
               <Route path="/pdv/report" element={<PDVReport />} />
               <Route path="/pdv/customers" element={<PDVCustomers />} />
               <Route path="/pdv/settings" element={<PDVSettings />} />
+              <Route path="/rastreio" element={<TrackOrder />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
