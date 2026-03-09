@@ -162,7 +162,7 @@ const PDVCashier = () => {
   const loadProducts = async () => {
     const { data, error } = await supabase
       .from('products')
-      .select('id, name, price, cost_price, stock, category, brand')
+      .select('id, name, price, cost_price, stock, category, brand, tag')
       .eq('is_active', true)
       .gt('stock', 0)
       .order('name');
