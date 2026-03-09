@@ -51,38 +51,7 @@ interface SiteOrder {
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
-const playNotificationSound = () => {
-  try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-    
-    const audioCtx = new AudioContextClass();
-    
-    const playNote = (frequency: number, startTime: number, duration: number) => {
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      
-      oscillator.type = 'sine';
-      oscillator.frequency.value = frequency;
-      
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-      
-      oscillator.start(startTime);
-      oscillator.stop(startTime + duration);
-    };
-
-    const now = audioCtx.currentTime;
-    playNote(523.25, now, 0.2);       // C5
-    playNote(659.25, now + 0.15, 0.3); // E5
-  } catch (e) {
-    console.error('Audio playback failed', e);
-  }
-};
+// Notification sound logic moved to PDVLayout.tsx
 
 const PDVCashier = () => {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
@@ -115,33 +84,7 @@ const PDVCashier = () => {
     loadProducts();
   }, []);
 
-  // Listen for new site orders in real-time
-  useEffect(() => {
-    const channel = supabase
-      .channel('public:sales')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'sales',
-          filter: 'source=eq.site'
-        },
-        (payload) => {
-          playNotificationSound();
-          toast({
-            title: '🔔 Novo Pedido Online!',
-            description: 'Um novo pedido acabou de chegar do site. Clique em "Pedidos do Site" para visualizar.',
-            duration: 8000,
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [toast]);
+  // Real-time listener for orders moved to PDVLayout.tsx for global PDV notifications
 
 
   const loadProducts = async () => {
