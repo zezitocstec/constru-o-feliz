@@ -1,4 +1,5 @@
 import { Hammer, Paintbrush, Wrench, Zap, Droplets, TreeDeciduous, Lock, Lightbulb, LucideIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
