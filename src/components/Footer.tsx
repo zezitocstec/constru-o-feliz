@@ -100,8 +100,8 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold text-primary-foreground mb-4">Ajuda</h4>
-            <ul className="space-y-3">
+            <h4 className="font-semibold text-primary-foreground mb-4">Ajuda & Segurança</h4>
+            <ul className="space-y-3 mb-6">
               {links.help.map((link) => (
                 <li key={link.label}>
                   <a
@@ -113,6 +113,16 @@ const Footer = () => {
                 </li>
               ))}
             </ul>
+            <div className="flex gap-3">
+              <div className="bg-background/10 p-2 rounded flex flex-col items-center justify-center flex-1">
+                <ShieldCheck className="w-6 h-6 text-accent mb-1" />
+                <span className="text-[10px] uppercase text-center leading-tight">Compra<br/>Segura</span>
+              </div>
+              <div className="bg-background/10 p-2 rounded flex flex-col items-center justify-center flex-1">
+                <LockKeyhole className="w-6 h-6 text-accent mb-1" />
+                <span className="text-[10px] uppercase text-center leading-tight">Dados<br/>Protegidos</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
