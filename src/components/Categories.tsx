@@ -42,7 +42,7 @@ const fetchCategoryCounts = async () => {
 };
 
 const Categories = () => {
-  const { data: counts = {} } = useQuery({
+  const { data: counts = {}, isLoading } = useQuery({
     queryKey: ["category-counts"],
     queryFn: fetchCategoryCounts,
   });
