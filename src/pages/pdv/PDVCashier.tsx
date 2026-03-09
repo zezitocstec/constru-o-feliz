@@ -802,6 +802,83 @@ const PDVCashier = () => {
               </div>
             )}
 
+            {paymentMethod === 'misto' && (
+              <div className="space-y-4 border border-border p-3 rounded-lg bg-card">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Label className="text-xs">Método</Label>
+                    <Select value={currentMixedMethod} onValueChange={setCurrentMixedMethod}>
+                      <SelectTrigger className="h-9 mt-1">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                        <SelectItem value="PIX">PIX</SelectItem>
+                        <SelectItem value="Cartão de Débito">Débito</SelectItem>
+                        <SelectItem value="Cartão de Crédito">Crédito</SelectItem>
+                        <SelectItem value="Transferência">Transf.</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="w-24">
+                    <Label className="text-xs">Valor</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      className="h-9 mt-1"
+                      value={currentMixedAmount}
+                      onChange={e => setCurrentMixedAmount(e.target.value)}
+                      placeholder="0,00"
+                    />
+                  </div>
+                  <div className="flex items-end pb-[2px]">
+                    <Button 
+                      variant="secondary" 
+                      className="h-9 w-9 px-0" 
+                      onClick={addMixedPayment}
+                      disabled={!currentMixedMethod || !currentMixedAmount}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {mixedPayments.length > 0 && (
+                  <div className="space-y-2 mt-3">
+                    {mixedPayments.map((p, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-sm bg-muted p-2 rounded">
+                        <span>{p.method}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{formatCurrency(p.amount)}</span>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/20 hover:text-destructive" onClick={() => removeMixedPayment(idx)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center pt-2 border-t border-border">
+                      <span className="text-sm font-medium">Total Pago:</span>
+                      <span className={`font-bold ${totalMixedPayments >= total ? 'text-emerald-600' : 'text-amber-500'}`}>
+                        {formatCurrency(totalMixedPayments)}
+                      </span>
+                    </div>
+                    {totalMixedPayments >= total && totalMixedPayments - total > 0 && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Troco:</span>
+                        <span className="font-bold text-emerald-600">{formatCurrency(totalMixedPayments - total)}</span>
+                      </div>
+                    )}
+                    {totalMixedPayments < total && (
+                      <div className="flex justify-between items-center text-sm text-destructive">
+                        <span>Falta:</span>
+                        <span className="font-bold">{formatCurrency(total - totalMixedPayments)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="border-t border-border pt-3 space-y-1 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Itens</span>
