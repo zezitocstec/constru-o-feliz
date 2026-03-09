@@ -36,6 +36,29 @@ const formatCurrency = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
 export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
+  let COMPANY = {
+    name: 'itsega4PDV',
+    cnpj: '00.000.000/0001-00',
+    address: 'Endereço da Empresa, 123 - Cidade/UF',
+    phone: '(00) 0000-0000',
+    logo: null as string | null
+  };
+
+  try {
+    const { data: settings } = await supabase.from('pdv_settings').select('*').maybeSingle();
+    if (settings) {
+      COMPANY = {
+        name: settings.company_name || COMPANY.name,
+        cnpj: settings.company_cnpj || COMPANY.cnpj,
+        address: settings.company_address || COMPANY.address,
+        phone: settings.company_phone || COMPANY.phone,
+        logo: settings.company_logo || null
+      };
+    }
+  } catch (err) {
+    console.error("Error fetching pdv_settings", err);
+  }
+
   // 80mm thermal receipt width ≈ 226 points
   const pageWidth = 226;
   const margin = 10;
@@ -45,6 +68,24 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Blob> {
   let y = margin;
   const lineHeight = 12;
   const smallLine = 10;
+
+  if (COMPANY.logo) {
+    try {
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
+      img.src = COMPANY.logo;
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+      const imgWidth = 80;
+      const imgHeight = (img.height * imgWidth) / img.width;
+      doc.addImage(img, 'PNG', (pageWidth - imgWidth) / 2, y, imgWidth, imgHeight);
+      y += imgHeight + 10;
+    } catch (e) {
+      console.error("Could not load logo for receipt", e);
+    }
+  }
 
   const center = (text: string, size: number, bold = false) => {
     doc.setFontSize(size);
