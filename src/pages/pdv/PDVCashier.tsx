@@ -88,6 +88,9 @@ const PDVCashier = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [mixedPayments, setMixedPayments] = useState<{ method: string; amount: number }[]>([]);
+  const [currentMixedMethod, setCurrentMixedMethod] = useState('');
+  const [currentMixedAmount, setCurrentMixedAmount] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [amountPaid, setAmountPaid] = useState('');
   const [isFinishOpen, setIsFinishOpen] = useState(false);
@@ -345,11 +348,28 @@ const PDVCashier = () => {
   }, 0);
   const change = amountPaid ? Math.max(0, parseFloat(amountPaid) - total) : 0;
 
+  const totalMixedPayments = mixedPayments.reduce((acc, curr) => acc + curr.amount, 0);
+
+  const addMixedPayment = () => {
+    const amount = parseFloat(currentMixedAmount);
+    if (!currentMixedMethod || isNaN(amount) || amount <= 0) return;
+    setMixedPayments(prev => [...prev, { method: currentMixedMethod, amount }]);
+    setCurrentMixedMethod('');
+    setCurrentMixedAmount('');
+  };
+
+  const removeMixedPayment = (index: number) => {
+    setMixedPayments(prev => prev.filter((_, i) => i !== index));
+  };
+
   const clearCart = () => {
     setCart([]);
     setCustomerName('');
     setPaymentMethod('');
     setAmountPaid('');
+    setMixedPayments([]);
+    setCurrentMixedMethod('');
+    setCurrentMixedAmount('');
     setActiveSiteOrderId(null);
   };
 
@@ -358,16 +378,23 @@ const PDVCashier = () => {
       toast({ variant: 'destructive', title: 'Selecione a forma de pagamento' });
       return;
     }
+    if (paymentMethod === 'misto' && totalMixedPayments < total) {
+      toast({ variant: 'destructive', title: 'O valor pago no pagamento misto é menor que o total' });
+      return;
+    }
     setIsSubmitting(true);
     try {
       let saleId: string;
+      const finalPaymentMethod = paymentMethod === 'misto' 
+        ? `Misto: ${mixedPayments.map(p => `${p.method} (${formatCurrency(p.amount)})`).join(' + ')}`
+        : paymentMethod;
 
       if (activeSiteOrderId) {
         // Update existing site order to completed
         const { error: updateError } = await supabase
           .from('sales')
           .update({
-            payment_method: paymentMethod,
+            payment_method: finalPaymentMethod,
             total,
             profit,
             status: 'completed',
@@ -384,7 +411,7 @@ const PDVCashier = () => {
           .from('sales')
           .insert({
             customer_name: customerName || null,
-            payment_method: paymentMethod,
+            payment_method: finalPaymentMethod,
             total,
             profit,
             status: 'completed',
@@ -435,10 +462,10 @@ const PDVCashier = () => {
           subtotal,
           totalDiscount,
           total,
-          paymentMethod,
+          paymentMethod: finalPaymentMethod,
           customerName: customerName || undefined,
-          amountPaid: amountPaid ? parseFloat(amountPaid) : undefined,
-          change: amountPaid ? change : undefined,
+          amountPaid: paymentMethod === 'misto' ? totalMixedPayments : (amountPaid ? parseFloat(amountPaid) : undefined),
+          change: paymentMethod === 'misto' ? Math.max(0, totalMixedPayments - total) : (amountPaid ? change : undefined),
           createdAt: new Date(),
         });
         downloadReceiptPDF(receiptBlob, saleId);
@@ -770,6 +797,83 @@ const PDVCashier = () => {
                   <div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg text-center">
                     <p className="text-sm text-muted-foreground">Troco</p>
                     <p className="text-xl font-bold text-emerald-600">{formatCurrency(change)}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {paymentMethod === 'misto' && (
+              <div className="space-y-4 border border-border p-3 rounded-lg bg-card">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Label className="text-xs">Método</Label>
+                    <Select value={currentMixedMethod} onValueChange={setCurrentMixedMethod}>
+                      <SelectTrigger className="h-9 mt-1">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                        <SelectItem value="PIX">PIX</SelectItem>
+                        <SelectItem value="Cartão de Débito">Débito</SelectItem>
+                        <SelectItem value="Cartão de Crédito">Crédito</SelectItem>
+                        <SelectItem value="Transferência">Transf.</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="w-24">
+                    <Label className="text-xs">Valor</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      className="h-9 mt-1"
+                      value={currentMixedAmount}
+                      onChange={e => setCurrentMixedAmount(e.target.value)}
+                      placeholder="0,00"
+                    />
+                  </div>
+                  <div className="flex items-end pb-[2px]">
+                    <Button 
+                      variant="secondary" 
+                      className="h-9 w-9 px-0" 
+                      onClick={addMixedPayment}
+                      disabled={!currentMixedMethod || !currentMixedAmount}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {mixedPayments.length > 0 && (
+                  <div className="space-y-2 mt-3">
+                    {mixedPayments.map((p, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-sm bg-muted p-2 rounded">
+                        <span>{p.method}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{formatCurrency(p.amount)}</span>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/20 hover:text-destructive" onClick={() => removeMixedPayment(idx)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center pt-2 border-t border-border">
+                      <span className="text-sm font-medium">Total Pago:</span>
+                      <span className={`font-bold ${totalMixedPayments >= total ? 'text-emerald-600' : 'text-amber-500'}`}>
+                        {formatCurrency(totalMixedPayments)}
+                      </span>
+                    </div>
+                    {totalMixedPayments >= total && totalMixedPayments - total > 0 && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Troco:</span>
+                        <span className="font-bold text-emerald-600">{formatCurrency(totalMixedPayments - total)}</span>
+                      </div>
+                    )}
+                    {totalMixedPayments < total && (
+                      <div className="flex justify-between items-center text-sm text-destructive">
+                        <span>Falta:</span>
+                        <span className="font-bold">{formatCurrency(total - totalMixedPayments)}</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
