@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ReceiptItem {
   product_name: string;
@@ -29,13 +30,6 @@ const PAYMENT_LABELS: Record<string, string> = {
   cartao_credito: 'Cartão de Crédito',
   transferencia: 'Transferência',
   misto: 'Pagamento Misto',
-};
-
-const COMPANY = {
-  name: 'itsega4PDV',
-  cnpj: '00.000.000/0001-00',
-  address: 'Endereço da Empresa, 123 - Cidade/UF',
-  phone: '(00) 0000-0000',
 };
 
 const formatCurrency = (v: number) =>
