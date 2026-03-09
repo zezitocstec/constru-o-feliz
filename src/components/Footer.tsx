@@ -1,4 +1,4 @@
-import { Facebook, Instagram, Youtube, MapPin } from "lucide-react";
+import { Facebook, Instagram, Youtube, MapPin, ShieldCheck, LockKeyhole } from "lucide-react";
 
 const Footer = () => {
   const links = {
