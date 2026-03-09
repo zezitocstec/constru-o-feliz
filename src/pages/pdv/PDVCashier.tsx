@@ -106,6 +106,8 @@ const PDVCashier = () => {
   const [activeSiteOrderId, setActiveSiteOrderId] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const barcodeBuffer = useRef('');
+  const lastKeyTime = useRef(Date.now());
   const { toast } = useToast();
 
   // Load all products into cache on mount
@@ -141,24 +143,6 @@ const PDVCashier = () => {
     };
   }, [toast]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'F2') {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-      if (e.key === 'F9') {
-        e.preventDefault();
-        if (cart.length > 0) setIsFinishOpen(true);
-      }
-      if (e.key === 'Escape') {
-        setSearchTerm('');
-        setSearchResults([]);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [cart]);
 
   const loadProducts = async () => {
     const { data, error } = await supabase
@@ -353,6 +337,55 @@ const PDVCashier = () => {
     setSearchResults([]);
     toast({ variant: 'destructive', title: 'Produto não encontrado', description: `Código: ${code}` });
   }, [addToCart, productsCache, searchResults, toast]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        searchRef.current?.focus();
+        return;
+      }
+      if (e.key === 'F9') {
+        e.preventDefault();
+        if (cart.length > 0) setIsFinishOpen(true);
+        return;
+      }
+      if (e.key === 'Escape') {
+        setSearchTerm('');
+        setSearchResults([]);
+        return;
+      }
+
+      // Barcode scanner global capture (typing speed detection)
+      const now = Date.now();
+      const timeDiff = now - lastKeyTime.current;
+      
+      // If more than 50ms between keys, it's likely human typing, not a scanner
+      if (timeDiff > 50) {
+        barcodeBuffer.current = '';
+      }
+
+      if (e.key === 'Enter') {
+        if (barcodeBuffer.current.length >= 3) {
+          e.preventDefault();
+          e.stopPropagation();
+          const code = barcodeBuffer.current;
+          barcodeBuffer.current = '';
+          
+          void handleBarcodeSubmit(code);
+          return;
+        }
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        barcodeBuffer.current += e.key;
+      }
+      
+      lastKeyTime.current = now;
+    };
+    
+    // Use capture phase to intercept scanner input before focused inputs receive it
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [cart, handleBarcodeSubmit]);
 
   const updateQuantity = (index: number, delta: number) => {
     setCart(prev => {
