@@ -331,6 +331,7 @@ export type Database = {
           total: number
           tracking_status: string
           updated_at: string
+          whatsapp_opt_in: boolean
         }
         Insert: {
           created_at?: string
@@ -350,6 +351,7 @@ export type Database = {
           total?: number
           tracking_status?: string
           updated_at?: string
+          whatsapp_opt_in?: boolean
         }
         Update: {
           created_at?: string
@@ -369,6 +371,7 @@ export type Database = {
           total?: number
           tracking_status?: string
           updated_at?: string
+          whatsapp_opt_in?: boolean
         }
         Relationships: []
       }

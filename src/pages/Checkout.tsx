@@ -261,6 +261,17 @@ const Checkout = () => {
               />
             </div>
 
+            <div className="flex items-center space-x-2 pt-1 pb-2">
+              <Checkbox
+                id="whatsapp-opt-in"
+                checked={whatsappOptIn}
+                onCheckedChange={(checked) => setWhatsappOptIn(checked as boolean)}
+              />
+              <Label htmlFor="whatsapp-opt-in" className="text-sm font-normal cursor-pointer leading-none">
+                Desejo receber atualizações do pedido via WhatsApp
+              </Label>
+            </div>
+
             <div className="bg-muted rounded-lg p-3">
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-muted-foreground">Itens:</span>
