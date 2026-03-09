@@ -35,6 +35,7 @@ interface Order {
   delivery_phone: string | null;
   delivery_notes: string | null;
   created_at: string;
+  whatsapp_opt_in: boolean;
 }
 
 interface SaleItem {
