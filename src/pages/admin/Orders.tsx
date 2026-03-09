@@ -310,6 +310,10 @@ const Orders = () => {
                   <p className="text-sm text-muted-foreground">Telefone</p>
                   <p className="font-medium">{selectedOrder.customer_phone || '-'}</p>
                 </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">WhatsApp</p>
+                  <p className="font-medium">{selectedOrder.whatsapp_opt_in ? 'Ativado' : 'Não'}</p>
+                </div>
               </div>
 
               {selectedOrder.delivery_type === 'delivery' && (
