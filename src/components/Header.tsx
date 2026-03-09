@@ -157,16 +157,27 @@ const Header = () => {
           {mobileMenuOpen && (
             <nav className="lg:hidden mt-4 pb-4 border-t border-border pt-4 animate-fade-in">
               <div className="flex flex-col gap-4">
-                {navLinks.map((link) => (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    className="text-foreground font-medium hover:text-primary transition-colors py-2"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </a>
-                ))}
+                {navLinks.map((link) =>
+                  link.href.startsWith("/") ? (
+                    <Link
+                      key={link.label}
+                      to={link.href}
+                      className="text-foreground font-medium hover:text-primary transition-colors py-2"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      className="text-foreground font-medium hover:text-primary transition-colors py-2"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {link.label}
+                    </a>
+                  )
+                )}
                 <Button
                   className="w-full mt-2"
                   size="lg"
