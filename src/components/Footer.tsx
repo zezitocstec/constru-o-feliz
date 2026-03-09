@@ -1,4 +1,4 @@
-import { Facebook, Instagram, Youtube, MapPin } from "lucide-react";
+import { Facebook, Instagram, Youtube, MapPin, ShieldCheck, LockKeyhole } from "lucide-react";
 
 const Footer = () => {
   const links = {
@@ -100,8 +100,8 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold text-primary-foreground mb-4">Ajuda</h4>
-            <ul className="space-y-3">
+            <h4 className="font-semibold text-primary-foreground mb-4">Ajuda & Segurança</h4>
+            <ul className="space-y-3 mb-6">
               {links.help.map((link) => (
                 <li key={link.label}>
                   <a
@@ -113,6 +113,16 @@ const Footer = () => {
                 </li>
               ))}
             </ul>
+            <div className="flex gap-3">
+              <div className="bg-background/10 p-2 rounded flex flex-col items-center justify-center flex-1">
+                <ShieldCheck className="w-6 h-6 text-accent mb-1" />
+                <span className="text-[10px] uppercase text-center leading-tight">Compra<br/>Segura</span>
+              </div>
+              <div className="bg-background/10 p-2 rounded flex flex-col items-center justify-center flex-1">
+                <LockKeyhole className="w-6 h-6 text-accent mb-1" />
+                <span className="text-[10px] uppercase text-center leading-tight">Dados<br/>Protegidos</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -121,8 +131,11 @@ const Footer = () => {
       <div className="border-t border-primary-foreground/10">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-primary-foreground/60">
-            <p>© 2026 IT.Sega4 — Automatize. Escale. Conquiste.</p>
-            <p>Desenvolvido com © 2026 IT.Sega4</p>
+            <div className="space-y-1">
+              <p>© 2026 Depósito Construir. Todos os direitos reservados.</p>
+              <p className="text-xs text-primary-foreground/40">CNPJ: 00.000.000/0001-00</p>
+            </div>
+            <p>Desenvolvido por IT.Sega4</p>
           </div>
         </div>
       </div>
