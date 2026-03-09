@@ -148,19 +148,49 @@ const PDVCashier = () => {
       if (e.key === 'F2') {
         e.preventDefault();
         searchRef.current?.focus();
+        return;
       }
       if (e.key === 'F9') {
         e.preventDefault();
         if (cart.length > 0) setIsFinishOpen(true);
+        return;
       }
       if (e.key === 'Escape') {
         setSearchTerm('');
         setSearchResults([]);
+        return;
       }
+
+      // Barcode scanner global capture (typing speed detection)
+      const now = Date.now();
+      const timeDiff = now - lastKeyTime.current;
+      
+      // If more than 50ms between keys, it's likely human typing, not a scanner
+      if (timeDiff > 50) {
+        barcodeBuffer.current = '';
+      }
+
+      if (e.key === 'Enter') {
+        if (barcodeBuffer.current.length >= 3) {
+          e.preventDefault();
+          e.stopPropagation();
+          const code = barcodeBuffer.current;
+          barcodeBuffer.current = '';
+          
+          void handleBarcodeSubmit(code);
+          return;
+        }
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        barcodeBuffer.current += e.key;
+      }
+      
+      lastKeyTime.current = now;
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [cart]);
+    
+    // Use capture phase to intercept scanner input before focused inputs receive it
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [cart, handleBarcodeSubmit]);
 
   const loadProducts = async () => {
     const { data, error } = await supabase
