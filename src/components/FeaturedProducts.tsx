@@ -96,65 +96,77 @@ const FeaturedProducts = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product, index) => {
-            const r = ratings[product.id];
-            return (
-              <div
-                key={product.id}
-                className="group bg-card rounded-2xl overflow-hidden card-shadow hover:card-shadow-hover transition-all duration-300 hover:-translate-y-1 animate-fade-in"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                <div className="relative aspect-square bg-muted overflow-hidden">
-                  <img
-                    src={product.image_url || "/placeholder.svg"}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  {product.tag && (
-                    <span className="absolute top-4 left-4 bg-primary text-primary-foreground text-xs font-bold px-3 py-1.5 rounded-full">
-                      {product.tag}
-                    </span>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-secondary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <Button
-                    size="icon"
-                    className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all"
-                    onClick={() => handleAddToCart(product)}
-                  >
-                    <ShoppingCart className="w-5 h-5" />
-                  </Button>
-                </div>
-
-                <div className="p-5">
-                  <p className="text-sm text-muted-foreground mb-1">{product.brand}</p>
-                  <h3 className="font-semibold text-lg text-foreground mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-                    {product.name}
-                  </h3>
-
-                  {r && (
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-accent text-accent" />
-                        <span className="text-sm font-medium text-foreground">{r.avg}</span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">({r.count} avaliações)</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-end gap-2">
-                    <span className="text-2xl font-bold text-primary">
-                      R$ {product.price.toFixed(2).replace(".", ",")}
-                    </span>
-                    {product.old_price && (
-                      <span className="text-sm text-muted-foreground line-through mb-1">
-                        R$ {product.old_price.toFixed(2).replace(".", ",")}
-                      </span>
-                    )}
+          {isLoadingProducts
+            ? Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="bg-card rounded-2xl overflow-hidden card-shadow">
+                  <Skeleton className="w-full aspect-square" />
+                  <div className="p-5">
+                    <Skeleton className="h-4 w-1/3 mb-2" />
+                    <Skeleton className="h-6 w-full mb-3" />
+                    <Skeleton className="h-4 w-1/4 mb-4" />
+                    <Skeleton className="h-8 w-1/2" />
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              ))
+            : products.map((product, index) => {
+                const r = ratings[product.id];
+                return (
+                  <div
+                    key={product.id}
+                    className="group bg-card rounded-2xl overflow-hidden card-shadow hover:card-shadow-hover transition-all duration-300 hover:-translate-y-1 animate-fade-in"
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
+                    <div className="relative aspect-square bg-muted overflow-hidden">
+                      <img
+                        src={product.image_url || "/placeholder.svg"}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      {product.tag && (
+                        <span className="absolute top-4 left-4 bg-primary text-primary-foreground text-xs font-bold px-3 py-1.5 rounded-full">
+                          {product.tag}
+                        </span>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-secondary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <Button
+                        size="icon"
+                        className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all"
+                        onClick={() => handleAddToCart(product)}
+                      >
+                        <ShoppingCart className="w-5 h-5" />
+                      </Button>
+                    </div>
+
+                    <div className="p-5">
+                      <p className="text-sm text-muted-foreground mb-1">{product.brand || "Marca não informada"}</p>
+                      <h3 className="font-semibold text-lg text-foreground mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                        {product.name}
+                      </h3>
+
+                      {r && (
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 fill-accent text-accent" />
+                            <span className="text-sm font-medium text-foreground">{r.avg}</span>
+                          </div>
+                          <span className="text-sm text-muted-foreground">({r.count} avaliações)</span>
+                        </div>
+                      )}
+
+                      <div className="flex items-end gap-2">
+                        <span className="text-2xl font-bold text-primary">
+                          R$ {product.price.toFixed(2).replace(".", ",")}
+                        </span>
+                        {product.old_price && (
+                          <span className="text-sm text-muted-foreground line-through mb-1">
+                            R$ {product.old_price.toFixed(2).replace(".", ",")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
         </div>
       </div>
     </section>

@@ -131,8 +131,11 @@ const Footer = () => {
       <div className="border-t border-primary-foreground/10">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-primary-foreground/60">
-            <p>© 2026 IT.Sega4 — Automatize. Escale. Conquiste.</p>
-            <p>Desenvolvido com © 2026 IT.Sega4</p>
+            <div className="space-y-1">
+              <p>© 2026 Depósito Construir. Todos os direitos reservados.</p>
+              <p className="text-xs text-primary-foreground/40">CNPJ: 00.000.000/0001-00</p>
+            </div>
+            <p>Desenvolvido por IT.Sega4</p>
           </div>
         </div>
       </div>
