@@ -46,6 +46,47 @@ interface PDVLayoutProps {
 export function PDVLayout({ children }: PDVLayoutProps) {
   const { user, loading, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        navigate('/auth');
+      } else if (!isAdmin) {
+        navigate('/');
+      }
+    }
+  }, [user, loading, isAdmin, navigate]);
+
+  // Listen for new site orders in real-time globally in PDV
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+    
+    const channel = supabase
+      .channel('public:sales:pdv_global')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'sales',
+          filter: 'source=eq.site'
+        },
+        (payload) => {
+          playNotificationSound();
+          toast({
+            title: '🔔 Novo Pedido Online!',
+            description: 'Um novo pedido acabou de chegar do site.',
+            duration: 8000,
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, isAdmin, toast]);
 
   useEffect(() => {
     if (!loading) {
