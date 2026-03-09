@@ -279,7 +279,7 @@ const PDVCashier = () => {
     }, 200);
   }, [searchProducts]);
 
-  const addToCart = (product: Product) => {
+  const addToCart = useCallback((product: Product) => {
     setCart(prev => {
       const existing = prev.find(i => i.product_id === product.id);
       if (existing) {
@@ -306,7 +306,51 @@ const PDVCashier = () => {
     setSearchTerm('');
     setSearchResults([]);
     searchRef.current?.focus();
-  };
+  }, [toast]);
+
+  const handleBarcodeSubmit = useCallback(async (raw: string) => {
+    const code = raw.trim();
+    if (!code) return;
+
+    const lower = code.toLowerCase();
+
+    const exactMatch = productsCache.find(p =>
+      p.id.toLowerCase() === lower || (p.tag && p.tag.toLowerCase() === lower)
+    );
+
+    if (exactMatch) {
+      addToCart(exactMatch);
+      return;
+    }
+
+    // Fallback: if results already listed, add first one quickly
+    if (searchResults.length > 0) {
+      addToCart(searchResults[0]);
+      return;
+    }
+
+    // Fallback: direct lookup by tag in the database (covers cases before cache loads)
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, price, cost_price, stock, category, brand, tag')
+      .eq('is_active', true)
+      .gt('stock', 0)
+      .eq('tag', code)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Barcode lookup error:', error);
+    }
+
+    if (data) {
+      addToCart(data);
+      return;
+    }
+
+    setSearchTerm(code);
+    setSearchResults([]);
+    toast({ variant: 'destructive', title: 'Produto não encontrado', description: `Código: ${code}` });
+  }, [addToCart, productsCache, searchResults, toast]);
 
   const updateQuantity = (index: number, delta: number) => {
     setCart(prev => {
