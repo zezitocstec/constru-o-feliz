@@ -90,6 +90,7 @@ const Sales = () => {
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [saleType, setSaleType] = useState<'pdv' | 'nfce'>('pdv');
   const [formData, setFormData] = useState({
     customer_name: '',
     customer_phone: '',
