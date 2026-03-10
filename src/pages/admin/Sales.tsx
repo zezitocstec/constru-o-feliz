@@ -144,6 +144,39 @@ const Sales = () => {
     }
   };
 
+  const fetchCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      setCustomers(data || []);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    }
+  };
+
+  const handleSelectCustomer = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+    if (customerId === '__none__') {
+      return;
+    }
+    const customer = customers.find(c => c.id === customerId);
+    if (!customer) return;
+    setFormData(prev => ({
+      ...prev,
+      customer_name: customer.company_name || customer.name,
+      customer_phone: customer.phone || '',
+      customer_email: customer.email || '',
+      delivery_cep: customer.cep || '',
+      delivery_address: customer.address
+        ? `${customer.address}${customer.neighborhood ? ', ' + customer.neighborhood : ''}${customer.city ? ', ' + customer.city : ''}${customer.state ? ' - ' + customer.state : ''}`
+        : '',
+    }));
+    toast({ title: 'Cliente selecionado', description: `Dados de ${customer.name} preenchidos.` });
+  };
+
   const fetchSaleItems = async (saleId: string) => {
     try {
       const { data, error } = await supabase
