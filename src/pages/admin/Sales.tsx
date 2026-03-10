@@ -322,6 +322,7 @@ const Sales = () => {
           total: calculateTotal(),
           profit: calculateProfit(),
           status: 'completed',
+          sale_type: saleType,
         })
         .select()
         .single();
