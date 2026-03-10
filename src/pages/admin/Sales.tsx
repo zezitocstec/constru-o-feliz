@@ -293,6 +293,7 @@ const Sales = () => {
     setItems([]);
     setSelectedCustomerId('');
     setCustomerSearch('');
+    setSaleType('pdv');
   };
 
   const handleSubmit = async () => {
