@@ -443,6 +443,7 @@ const PDVCashier = () => {
             delivery_type: 'local',
             tracking_status: 'completed',
             source: 'pdv',
+            sale_type: saleType,
           })
           .select()
           .single();
