@@ -58,6 +58,7 @@ const PDVCashier = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [saleType, setSaleType] = useState<'pdv' | 'nfce'>('pdv');
   const [mixedPayments, setMixedPayments] = useState<{ method: string; amount: number }[]>([]);
   const [currentMixedMethod, setCurrentMixedMethod] = useState('');
   const [currentMixedAmount, setCurrentMixedAmount] = useState('');
@@ -393,6 +394,7 @@ const PDVCashier = () => {
     setCurrentMixedMethod('');
     setCurrentMixedAmount('');
     setActiveSiteOrderId(null);
+    setSaleType('pdv');
   };
 
   const finalizeSale = async () => {
@@ -422,6 +424,7 @@ const PDVCashier = () => {
             status: 'completed',
             tracking_status: 'completed',
             source: 'site',
+            sale_type: saleType,
           })
           .eq('id', activeSiteOrderId);
 
@@ -440,6 +443,7 @@ const PDVCashier = () => {
             delivery_type: 'local',
             tracking_status: 'completed',
             source: 'pdv',
+            sale_type: saleType,
           })
           .select()
           .single();
@@ -791,6 +795,31 @@ const PDVCashier = () => {
             <div className="text-center p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">Total a pagar</p>
               <p className="text-3xl font-bold text-primary">{formatCurrency(total)}</p>
+            </div>
+
+            <div>
+              <Label>Tipo de Venda</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <Button
+                  type="button"
+                  variant={saleType === 'pdv' ? 'default' : 'outline'}
+                  className={saleType === 'pdv' ? '' : ''}
+                  onClick={() => setSaleType('pdv')}
+                >
+                  🧾 PDV (Cupom)
+                </Button>
+                <Button
+                  type="button"
+                  variant={saleType === 'nfce' ? 'default' : 'outline'}
+                  className={saleType === 'nfce' ? 'border-primary' : ''}
+                  onClick={() => setSaleType('nfce')}
+                >
+                  📄 NFC-e
+                </Button>
+              </div>
+              {saleType === 'nfce' && (
+                <p className="text-xs text-amber-600 mt-1">⚠️ Integração ACBr pendente — será registrada como NFC-e para emissão futura.</p>
+              )}
             </div>
 
             <div>

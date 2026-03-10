@@ -44,6 +44,7 @@ interface Sale {
   payment_method: string | null;
   notes: string | null;
   created_at: string;
+  sale_type: string;
 }
 
 interface Product {
@@ -90,6 +91,7 @@ const Sales = () => {
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [saleType, setSaleType] = useState<'pdv' | 'nfce'>('pdv');
   const [formData, setFormData] = useState({
     customer_name: '',
     customer_phone: '',
@@ -292,6 +294,7 @@ const Sales = () => {
     setItems([]);
     setSelectedCustomerId('');
     setCustomerSearch('');
+    setSaleType('pdv');
   };
 
   const handleSubmit = async () => {
@@ -320,6 +323,7 @@ const Sales = () => {
           total: calculateTotal(),
           profit: calculateProfit(),
           status: 'completed',
+          sale_type: saleType,
         })
         .select()
         .single();
@@ -456,6 +460,7 @@ const Sales = () => {
                       <TableHead className="text-right">Total</TableHead>
                       <TableHead className="text-right">Lucro</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Tipo</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -474,6 +479,11 @@ const Sales = () => {
                           {formatCurrency(Number(sale.profit))}
                         </TableCell>
                         <TableCell>{getStatusBadge(sale.status)}</TableCell>
+                        <TableCell>
+                          <Badge variant={sale.sale_type === 'nfce' ? 'default' : 'secondary'}>
+                            {sale.sale_type === 'nfce' ? '📄 NFC-e' : '🧾 PDV'}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
@@ -579,7 +589,31 @@ const Sales = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="grid gap-2">
+                <Label>Tipo de Venda</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant={saleType === 'pdv' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSaleType('pdv')}
+                  >
+                    🧾 PDV
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={saleType === 'nfce' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSaleType('nfce')}
+                  >
+                    📄 NFC-e
+                  </Button>
+                </div>
+                {saleType === 'nfce' && (
+                  <p className="text-xs text-amber-600">⚠️ Integração ACBr pendente</p>
+                )}
+              </div>
               <div className="grid gap-2">
                 <Label>Tipo de Entrega</Label>
                 <Select
