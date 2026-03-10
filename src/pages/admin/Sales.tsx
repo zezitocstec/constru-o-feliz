@@ -504,6 +504,29 @@ const Sales = () => {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            {/* Customer selector */}
+            {customers.length > 0 && (
+              <div className="grid gap-2">
+                <Label className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Vincular Cliente Cadastrado
+                </Label>
+                <Select value={selectedCustomerId} onValueChange={handleSelectCustomer}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente cadastrado (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhum — preencher manualmente</SelectItem>
+                    {customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}{c.company_name ? ` (${c.company_name})` : ''}{c.cnpj ? ` — CNPJ: ${c.cnpj}` : c.cpf ? ` — CPF: ${c.cpf}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="customer_name">Nome do Cliente</Label>
