@@ -460,6 +460,7 @@ const Sales = () => {
                       <TableHead className="text-right">Total</TableHead>
                       <TableHead className="text-right">Lucro</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Tipo</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
