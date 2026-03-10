@@ -44,6 +44,7 @@ interface Sale {
   payment_method: string | null;
   notes: string | null;
   created_at: string;
+  sale_type: string;
 }
 
 interface Product {
