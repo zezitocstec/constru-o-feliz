@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, ShoppingCart, Eye, Loader2, MapPin, Package } from 'lucide-react';
+import { Plus, Search, ShoppingCart, Eye, Loader2, MapPin, Package, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -63,16 +63,33 @@ interface SaleItem {
   cost_price: number;
   subtotal?: number;
 }
+interface Customer {
+  id: string;
+  name: string;
+  cpf: string | null;
+  cnpj: string | null;
+  email: string | null;
+  phone: string | null;
+  cep: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  neighborhood: string | null;
+  company_name: string | null;
+}
 
 const Sales = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [formData, setFormData] = useState({
     customer_name: '',
     customer_phone: '',
@@ -93,6 +110,7 @@ const Sales = () => {
   useEffect(() => {
     fetchSales();
     fetchProducts();
+    fetchCustomers();
   }, []);
 
   const fetchSales = async () => {
@@ -124,6 +142,39 @@ const Sales = () => {
     } catch (error) {
       console.error('Error fetching products:', error);
     }
+  };
+
+  const fetchCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      setCustomers(data || []);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    }
+  };
+
+  const handleSelectCustomer = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+    if (customerId === '__none__') {
+      return;
+    }
+    const customer = customers.find(c => c.id === customerId);
+    if (!customer) return;
+    setFormData(prev => ({
+      ...prev,
+      customer_name: customer.company_name || customer.name,
+      customer_phone: customer.phone || '',
+      customer_email: customer.email || '',
+      delivery_cep: customer.cep || '',
+      delivery_address: customer.address
+        ? `${customer.address}${customer.neighborhood ? ', ' + customer.neighborhood : ''}${customer.city ? ', ' + customer.city : ''}${customer.state ? ' - ' + customer.state : ''}`
+        : '',
+    }));
+    toast({ title: 'Cliente selecionado', description: `Dados de ${customer.name} preenchidos.` });
   };
 
   const fetchSaleItems = async (saleId: string) => {
@@ -239,6 +290,8 @@ const Sales = () => {
       delivery_type: 'local', delivery_cep: '', delivery_address: '', delivery_phone: '', delivery_notes: '',
     });
     setItems([]);
+    setSelectedCustomerId('');
+    setCustomerSearch('');
   };
 
   const handleSubmit = async () => {
@@ -451,6 +504,29 @@ const Sales = () => {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            {/* Customer selector */}
+            {customers.length > 0 && (
+              <div className="grid gap-2">
+                <Label className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Vincular Cliente Cadastrado
+                </Label>
+                <Select value={selectedCustomerId} onValueChange={handleSelectCustomer}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente cadastrado (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhum — preencher manualmente</SelectItem>
+                    {customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}{c.company_name ? ` (${c.company_name})` : ''}{c.cnpj ? ` — CNPJ: ${c.cnpj}` : c.cpf ? ` — CPF: ${c.cpf}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="customer_name">Nome do Cliente</Label>
