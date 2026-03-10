@@ -58,6 +58,7 @@ const PDVCashier = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [saleType, setSaleType] = useState<'pdv' | 'nfce'>('pdv');
   const [mixedPayments, setMixedPayments] = useState<{ method: string; amount: number }[]>([]);
   const [currentMixedMethod, setCurrentMixedMethod] = useState('');
   const [currentMixedAmount, setCurrentMixedAmount] = useState('');
