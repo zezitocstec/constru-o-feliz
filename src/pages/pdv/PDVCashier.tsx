@@ -424,6 +424,7 @@ const PDVCashier = () => {
             status: 'completed',
             tracking_status: 'completed',
             source: 'site',
+            sale_type: saleType,
           })
           .eq('id', activeSiteOrderId);
 
