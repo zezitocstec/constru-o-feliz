@@ -479,6 +479,11 @@ const Sales = () => {
                           {formatCurrency(Number(sale.profit))}
                         </TableCell>
                         <TableCell>{getStatusBadge(sale.status)}</TableCell>
+                        <TableCell>
+                          <Badge variant={sale.sale_type === 'nfce' ? 'default' : 'secondary'}>
+                            {sale.sale_type === 'nfce' ? '📄 NFC-e' : '🧾 PDV'}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
