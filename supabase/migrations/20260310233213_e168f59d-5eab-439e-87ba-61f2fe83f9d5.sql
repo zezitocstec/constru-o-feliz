@@ -1,0 +1,1 @@
+ALTER TABLE public.sales ADD COLUMN sale_type TEXT NOT NULL DEFAULT 'pdv';
