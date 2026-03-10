@@ -290,6 +290,8 @@ const Sales = () => {
       delivery_type: 'local', delivery_cep: '', delivery_address: '', delivery_phone: '', delivery_notes: '',
     });
     setItems([]);
+    setSelectedCustomerId('');
+    setCustomerSearch('');
   };
 
   const handleSubmit = async () => {
