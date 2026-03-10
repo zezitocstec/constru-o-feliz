@@ -78,15 +78,18 @@ interface Customer {
   company_name: string | null;
 }
 
-
+const Sales = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [formData, setFormData] = useState({
     customer_name: '',
     customer_phone: '',
@@ -107,6 +110,7 @@ interface Customer {
   useEffect(() => {
     fetchSales();
     fetchProducts();
+    fetchCustomers();
   }, []);
 
   const fetchSales = async () => {
