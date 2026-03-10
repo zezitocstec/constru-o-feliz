@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, ShoppingCart, Eye, Loader2, MapPin, Package } from 'lucide-react';
+import { Plus, Search, ShoppingCart, Eye, Loader2, MapPin, Package, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
