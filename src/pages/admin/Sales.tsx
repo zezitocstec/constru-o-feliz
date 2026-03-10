@@ -582,7 +582,31 @@ const Sales = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="grid gap-2">
+                <Label>Tipo de Venda</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant={saleType === 'pdv' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSaleType('pdv')}
+                  >
+                    🧾 PDV
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={saleType === 'nfce' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSaleType('nfce')}
+                  >
+                    📄 NFC-e
+                  </Button>
+                </div>
+                {saleType === 'nfce' && (
+                  <p className="text-xs text-amber-600">⚠️ Integração ACBr pendente</p>
+                )}
+              </div>
               <div className="grid gap-2">
                 <Label>Tipo de Entrega</Label>
                 <Select
