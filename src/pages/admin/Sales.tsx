@@ -63,8 +63,22 @@ interface SaleItem {
   cost_price: number;
   subtotal?: number;
 }
+interface Customer {
+  id: string;
+  name: string;
+  cpf: string | null;
+  cnpj: string | null;
+  email: string | null;
+  phone: string | null;
+  cep: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  neighborhood: string | null;
+  company_name: string | null;
+}
 
-const Sales = () => {
+
   const [sales, setSales] = useState<Sale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
