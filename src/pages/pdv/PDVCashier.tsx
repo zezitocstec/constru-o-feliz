@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Plus, Minus, Trash2, ShoppingCart, Barcode, Percent, X, Check, RefreshCw, FileDown, Globe, Package } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Barcode, Percent, X, Check, RefreshCw, FileDown, Globe, Package, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { generateReceiptPDF, downloadReceiptPDF } from '@/utils/generateReceiptPDF';
+import { QuoteDialog } from '@/components/pdv/QuoteDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { PDVLayout } from '@/components/pdv/PDVLayout';
 import { Button } from '@/components/ui/button';
