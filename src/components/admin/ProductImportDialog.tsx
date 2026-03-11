@@ -329,12 +329,18 @@ export function ProductImportDialog({ open, onOpenChange, onImportComplete }: Pr
 
         {step === 'preview' && (
           <div className="flex-1 min-h-0 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="secondary">{fileName}</Badge>
                 <span className="text-sm text-muted-foreground">
                   {selectedCount} de {products.length} selecionados
                 </span>
+                {products.some(p => p.isDuplicate) && (
+                  <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    {products.filter(p => p.isDuplicate).length} duplicado(s)
+                  </Badge>
+                )}
               </div>
               <Button variant="ghost" size="sm" onClick={() => { resetState(); }}>
                 <X className="h-4 w-4 mr-1" />
@@ -342,7 +348,19 @@ export function ProductImportDialog({ open, onOpenChange, onImportComplete }: Pr
               </Button>
             </div>
 
-            <ScrollArea className="h-[400px] border rounded-lg">
+            {products.some(p => p.isDuplicate) && (
+              <div className="p-3 rounded-lg bg-orange-50 border border-orange-200 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium text-orange-700">Produtos duplicados detectados</p>
+                  <p className="text-orange-600">
+                    Foram encontrados produtos que já existem no sistema (por nome, EAN ou código). Eles foram desmarcados automaticamente. Você pode marcá-los novamente se deseja importar mesmo assim.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <ScrollArea className="h-[380px] border rounded-lg">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -355,12 +373,12 @@ export function ProductImportDialog({ open, onOpenChange, onImportComplete }: Pr
                     <TableHead className="text-right">Preço</TableHead>
                     <TableHead className="text-right">Custo</TableHead>
                     <TableHead className="text-right">Estoque</TableHead>
-                    <TableHead>Un</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {products.map((product, idx) => (
-                    <TableRow key={idx} className={!product.selected ? 'opacity-50' : ''}>
+                    <TableRow key={idx} className={!product.selected ? 'opacity-50' : product.isDuplicate ? 'bg-orange-50/50' : ''}>
                       <TableCell>
                         <Checkbox
                           checked={product.selected}
@@ -373,7 +391,19 @@ export function ProductImportDialog({ open, onOpenChange, onImportComplete }: Pr
                       <TableCell className="text-right text-sm">{formatCurrency(product.price)}</TableCell>
                       <TableCell className="text-right text-sm">{formatCurrency(product.cost_price)}</TableCell>
                       <TableCell className="text-right text-sm">{product.stock}</TableCell>
-                      <TableCell className="text-sm">{product.unit || 'UN'}</TableCell>
+                      <TableCell>
+                        {product.isDuplicate ? (
+                          <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 text-xs whitespace-nowrap" title={product.duplicateReason}>
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Duplicado
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50 text-xs">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Novo
+                          </Badge>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
