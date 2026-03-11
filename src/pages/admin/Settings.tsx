@@ -233,7 +233,61 @@ const Settings = () => {
     }
   };
 
-  const handleSaveStore = () => {
+  const handleExportBackup = async () => {
+    setExportLoading(true);
+    try {
+      const tables = [
+        'products', 'categories', 'customers', 'suppliers', 'supplier_products',
+        'sales', 'sale_items', 'stock_movements', 'product_reviews', 'xml_imports',
+        'pdv_settings', 'audit_log',
+      ] as const;
+
+      const backup: Record<string, any[]> = {};
+      for (const table of tables) {
+        const { data, error } = await supabase.from(table).select('*');
+        if (error) {
+          console.error(`Error exporting ${table}:`, error);
+          backup[table] = [];
+        } else {
+          backup[table] = data || [];
+        }
+      }
+
+      const exportData = {
+        exported_at: new Date().toISOString(),
+        exported_by: user?.email,
+        version: '1.0',
+        data: backup,
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({ title: 'Backup exportado', description: 'O arquivo JSON com todos os dados foi baixado.' });
+
+      await supabase.from('audit_log').insert({
+        action: 'BACKUP_EXPORT',
+        table_name: 'system',
+        record_id: crypto.randomUUID(),
+        changed_by: user?.id,
+        new_values: { exported_at: new Date().toISOString() },
+      });
+    } catch (err: any) {
+      console.error('Export error:', err);
+      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao exportar dados.' });
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+
     toast({
       title: 'Configurações salvas',
       description: 'As configurações da loja foram atualizadas.',
