@@ -864,8 +864,17 @@ const PDVCashier = () => {
             <div className="text-center p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">Total a pagar</p>
               <p className="text-3xl font-bold text-primary">{formatCurrency(total)}</p>
+              {(globalDiscountValue > 0 || globalSurchargeValue > 0) && (
+                <div className="mt-2 flex justify-center gap-3 text-xs">
+                  {globalDiscountValue > 0 && (
+                    <span className="text-destructive">Desc: -{formatCurrency(globalDiscountValue)}</span>
+                  )}
+                  {globalSurchargeValue > 0 && (
+                    <span className="text-emerald-600">Acrésc: +{formatCurrency(globalSurchargeValue)}</span>
+                  )}
+                </div>
+              )}
             </div>
-
 
             <div>
               <Label>Forma de Pagamento *</Label>
