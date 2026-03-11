@@ -394,7 +394,7 @@ const PDVCashier = () => {
     setCurrentMixedMethod('');
     setCurrentMixedAmount('');
     setActiveSiteOrderId(null);
-    setSaleType('pdv');
+    // saleType is always 'pdv'
   };
 
   const finalizeSale = async () => {
