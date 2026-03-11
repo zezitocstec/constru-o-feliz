@@ -527,6 +527,30 @@ const Settings = () => {
 
           <TabsContent value="danger">
             <div className="space-y-4">
+              {/* Backup Card */}
+              <Card className="border-primary/30 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-primary">
+                    <Download className="h-5 w-5" />
+                    Backup dos Dados
+                  </CardTitle>
+                  <CardDescription>
+                    Antes de executar qualquer ação destrutiva, faça um backup completo dos seus dados. O arquivo JSON exportado conterá todos os produtos, vendas, clientes, fornecedores e demais registros.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    onClick={handleExportBackup}
+                    disabled={exportLoading}
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    {exportLoading ? 'Exportando...' : 'Exportar Backup Completo (JSON)'}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Danger Actions Card */}
               <Card className="border-destructive/50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-destructive">
