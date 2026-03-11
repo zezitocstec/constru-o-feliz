@@ -235,10 +235,16 @@ const Products = () => {
             <h1 className="text-3xl font-display font-bold">Produtos</h1>
             <p className="text-muted-foreground">Gerencie seu catálogo de produtos</p>
           </div>
-          <Button onClick={() => handleOpenDialog()} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Novo Produto
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsImportOpen(true)} className="gap-2">
+              <Upload className="h-4 w-4" />
+              Importar Produtos
+            </Button>
+            <Button onClick={() => handleOpenDialog()} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Novo Produto
+            </Button>
+          </div>
         </div>
 
         <Card>
