@@ -714,16 +714,28 @@ const PDVCashier = () => {
             <CardHeader className="py-3 px-4">
               <CardTitle className="text-base">Resumo da Venda</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
-                {totalDiscount > 0 && (
+                {totalItemDiscount > 0 && (
                   <div className="flex justify-between text-sm text-destructive">
-                    <span>Desconto</span>
-                    <span>-{formatCurrency(totalDiscount)}</span>
+                    <span>Desc. itens</span>
+                    <span>-{formatCurrency(totalItemDiscount)}</span>
+                  </div>
+                )}
+                {globalDiscountValue > 0 && (
+                  <div className="flex justify-between text-sm text-destructive">
+                    <span>Desconto geral ({globalDiscount}%)</span>
+                    <span>-{formatCurrency(globalDiscountValue)}</span>
+                  </div>
+                )}
+                {globalSurchargeValue > 0 && (
+                  <div className="flex justify-between text-sm text-emerald-600">
+                    <span>Acréscimo ({globalSurcharge}%)</span>
+                    <span>+{formatCurrency(globalSurchargeValue)}</span>
                   </div>
                 )}
                 <div className="border-t border-border pt-2 flex justify-between text-2xl font-bold">
@@ -732,7 +744,39 @@ const PDVCashier = () => {
                 </div>
               </div>
 
-              <div className="space-y-3 pt-4">
+              <div className="space-y-3 pt-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      <TrendingDown className="h-3 w-3" /> Desconto %
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.5"
+                      value={globalDiscount || ''}
+                      onChange={e => setGlobalDiscount(parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      className="mt-1 h-9"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" /> Acréscimo %
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.5"
+                      value={globalSurcharge || ''}
+                      onChange={e => setGlobalSurcharge(parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      className="mt-1 h-9"
+                    />
+                  </div>
+                </div>
                 <div>
                   <Label className="text-xs">Cliente (opcional)</Label>
                   <Input
@@ -746,7 +790,16 @@ const PDVCashier = () => {
             </CardContent>
           </Card>
 
-          {/* Site orders + Action buttons */}
+          {/* Quote + Site orders buttons */}
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setIsQuoteOpen(true)}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Orçamentos
+          </Button>
+
           <Button
             variant="outline"
             className="w-full"
