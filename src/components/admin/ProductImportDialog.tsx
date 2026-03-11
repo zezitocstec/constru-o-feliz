@@ -24,6 +24,8 @@ interface ParsedProduct {
   brand: string | null;
   description: string | null;
   selected?: boolean;
+  isDuplicate?: boolean;
+  duplicateReason?: string;
 }
 
 interface ProductImportDialogProps {
