@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Plus, Minus, Trash2, ShoppingCart, Barcode, Percent, X, Check, RefreshCw, FileDown, Globe, Package } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Barcode, Percent, X, Check, RefreshCw, FileDown, Globe, Package, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { generateReceiptPDF, downloadReceiptPDF } from '@/utils/generateReceiptPDF';
+import { QuoteDialog } from '@/components/pdv/QuoteDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { PDVLayout } from '@/components/pdv/PDVLayout';
 import { Button } from '@/components/ui/button';
@@ -74,6 +75,9 @@ const PDVCashier = () => {
   const [isSiteOrdersOpen, setIsSiteOrdersOpen] = useState(false);
   const [loadingSiteOrders, setLoadingSiteOrders] = useState(false);
   const [activeSiteOrderId, setActiveSiteOrderId] = useState<string | null>(null);
+  const [globalDiscount, setGlobalDiscount] = useState(0);
+  const [globalSurcharge, setGlobalSurcharge] = useState(0);
+  const [isQuoteOpen, setIsQuoteOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const barcodeBuffer = useRef('');
@@ -363,12 +367,16 @@ const PDVCashier = () => {
   };
 
   const subtotal = cart.reduce((s, i) => s + i.unit_price * i.quantity, 0);
-  const totalDiscount = cart.reduce((s, i) => s + i.unit_price * i.quantity * (i.discount / 100), 0);
-  const total = subtotal - totalDiscount;
+  const totalItemDiscount = cart.reduce((s, i) => s + i.unit_price * i.quantity * (i.discount / 100), 0);
+  const afterItemDiscount = subtotal - totalItemDiscount;
+  const globalDiscountValue = afterItemDiscount * (globalDiscount / 100);
+  const globalSurchargeValue = afterItemDiscount * (globalSurcharge / 100);
+  const totalDiscount = totalItemDiscount + globalDiscountValue;
+  const total = afterItemDiscount - globalDiscountValue + globalSurchargeValue;
   const profit = cart.reduce((s, i) => {
     const sub = getItemSubtotal(i);
     return s + (sub - i.cost_price * i.quantity);
-  }, 0);
+  }, 0) - globalDiscountValue + globalSurchargeValue;
   const change = amountPaid ? Math.max(0, parseFloat(amountPaid) - total) : 0;
 
   const totalMixedPayments = mixedPayments.reduce((acc, curr) => acc + curr.amount, 0);
@@ -394,7 +402,15 @@ const PDVCashier = () => {
     setCurrentMixedMethod('');
     setCurrentMixedAmount('');
     setActiveSiteOrderId(null);
-    // saleType is always 'pdv'
+    setGlobalDiscount(0);
+    setGlobalSurcharge(0);
+  };
+
+  const handleImportQuote = (items: CartItem[], name: string, discount: number, surcharge: number) => {
+    setCart(items);
+    setCustomerName(name);
+    setGlobalDiscount(discount);
+    setGlobalSurcharge(surcharge);
   };
 
   const finalizeSale = async () => {
@@ -698,16 +714,28 @@ const PDVCashier = () => {
             <CardHeader className="py-3 px-4">
               <CardTitle className="text-base">Resumo da Venda</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
-                {totalDiscount > 0 && (
+                {totalItemDiscount > 0 && (
                   <div className="flex justify-between text-sm text-destructive">
-                    <span>Desconto</span>
-                    <span>-{formatCurrency(totalDiscount)}</span>
+                    <span>Desc. itens</span>
+                    <span>-{formatCurrency(totalItemDiscount)}</span>
+                  </div>
+                )}
+                {globalDiscountValue > 0 && (
+                  <div className="flex justify-between text-sm text-destructive">
+                    <span>Desconto geral ({globalDiscount}%)</span>
+                    <span>-{formatCurrency(globalDiscountValue)}</span>
+                  </div>
+                )}
+                {globalSurchargeValue > 0 && (
+                  <div className="flex justify-between text-sm text-emerald-600">
+                    <span>Acréscimo ({globalSurcharge}%)</span>
+                    <span>+{formatCurrency(globalSurchargeValue)}</span>
                   </div>
                 )}
                 <div className="border-t border-border pt-2 flex justify-between text-2xl font-bold">
@@ -716,7 +744,39 @@ const PDVCashier = () => {
                 </div>
               </div>
 
-              <div className="space-y-3 pt-4">
+              <div className="space-y-3 pt-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      <TrendingDown className="h-3 w-3" /> Desconto %
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.5"
+                      value={globalDiscount || ''}
+                      onChange={e => setGlobalDiscount(parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      className="mt-1 h-9"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" /> Acréscimo %
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.5"
+                      value={globalSurcharge || ''}
+                      onChange={e => setGlobalSurcharge(parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                      className="mt-1 h-9"
+                    />
+                  </div>
+                </div>
                 <div>
                   <Label className="text-xs">Cliente (opcional)</Label>
                   <Input
@@ -730,7 +790,16 @@ const PDVCashier = () => {
             </CardContent>
           </Card>
 
-          {/* Site orders + Action buttons */}
+          {/* Quote + Site orders buttons */}
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setIsQuoteOpen(true)}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Orçamentos
+          </Button>
+
           <Button
             variant="outline"
             className="w-full"
@@ -795,8 +864,17 @@ const PDVCashier = () => {
             <div className="text-center p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">Total a pagar</p>
               <p className="text-3xl font-bold text-primary">{formatCurrency(total)}</p>
+              {(globalDiscountValue > 0 || globalSurchargeValue > 0) && (
+                <div className="mt-2 flex justify-center gap-3 text-xs">
+                  {globalDiscountValue > 0 && (
+                    <span className="text-destructive">Desc: -{formatCurrency(globalDiscountValue)}</span>
+                  )}
+                  {globalSurchargeValue > 0 && (
+                    <span className="text-emerald-600">Acrésc: +{formatCurrency(globalSurchargeValue)}</span>
+                  )}
+                </div>
+              )}
             </div>
-
 
             <div>
               <Label>Forma de Pagamento *</Label>
@@ -923,6 +1001,12 @@ const PDVCashier = () => {
                   <span>-{formatCurrency(totalDiscount)}</span>
                 </div>
               )}
+              {globalSurchargeValue > 0 && (
+                <div className="flex justify-between text-emerald-600">
+                  <span>Acréscimo ({globalSurcharge}%)</span>
+                  <span>+{formatCurrency(globalSurchargeValue)}</span>
+                </div>
+              )}
               {customerName && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Cliente</span>
@@ -1004,6 +1088,17 @@ const PDVCashier = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Quote dialog */}
+      <QuoteDialog
+        open={isQuoteOpen}
+        onOpenChange={setIsQuoteOpen}
+        cart={cart}
+        customerName={customerName}
+        globalDiscount={globalDiscount}
+        globalSurcharge={globalSurcharge}
+        onImportQuote={handleImportQuote}
+      />
     </PDVLayout>
   );
 };
