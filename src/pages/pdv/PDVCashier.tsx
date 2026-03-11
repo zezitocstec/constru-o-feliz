@@ -1082,6 +1082,17 @@ const PDVCashier = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Quote dialog */}
+      <QuoteDialog
+        open={isQuoteOpen}
+        onOpenChange={setIsQuoteOpen}
+        cart={cart}
+        customerName={customerName}
+        globalDiscount={globalDiscount}
+        globalSurcharge={globalSurcharge}
+        onImportQuote={handleImportQuote}
+      />
     </PDVLayout>
   );
 };
