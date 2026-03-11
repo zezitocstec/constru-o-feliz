@@ -402,7 +402,15 @@ const PDVCashier = () => {
     setCurrentMixedMethod('');
     setCurrentMixedAmount('');
     setActiveSiteOrderId(null);
-    // saleType is always 'pdv'
+    setGlobalDiscount(0);
+    setGlobalSurcharge(0);
+  };
+
+  const handleImportQuote = (items: CartItem[], name: string, discount: number, surcharge: number) => {
+    setCart(items);
+    setCustomerName(name);
+    setGlobalDiscount(discount);
+    setGlobalSurcharge(surcharge);
   };
 
   const finalizeSale = async () => {
