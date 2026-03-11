@@ -75,6 +75,9 @@ const PDVCashier = () => {
   const [isSiteOrdersOpen, setIsSiteOrdersOpen] = useState(false);
   const [loadingSiteOrders, setLoadingSiteOrders] = useState(false);
   const [activeSiteOrderId, setActiveSiteOrderId] = useState<string | null>(null);
+  const [globalDiscount, setGlobalDiscount] = useState(0);
+  const [globalSurcharge, setGlobalSurcharge] = useState(0);
+  const [isQuoteOpen, setIsQuoteOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const barcodeBuffer = useRef('');
