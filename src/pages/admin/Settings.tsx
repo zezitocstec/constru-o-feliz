@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Store, User, Bell, Shield, UserCog, Plus, Trash2 } from 'lucide-react';
+import { Settings as SettingsIcon, Store, User, Bell, Shield, UserCog, Plus, Trash2, AlertTriangle, RotateCcw, Database, XCircle } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
