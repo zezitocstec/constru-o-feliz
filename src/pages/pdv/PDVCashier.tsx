@@ -1001,6 +1001,12 @@ const PDVCashier = () => {
                   <span>-{formatCurrency(totalDiscount)}</span>
                 </div>
               )}
+              {globalSurchargeValue > 0 && (
+                <div className="flex justify-between text-emerald-600">
+                  <span>Acréscimo ({globalSurcharge}%)</span>
+                  <span>+{formatCurrency(globalSurchargeValue)}</span>
+                </div>
+              )}
               {customerName && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Cliente</span>
