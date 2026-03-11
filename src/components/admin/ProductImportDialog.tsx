@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, FileText, FileSpreadsheet, AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react';
+import { Upload, FileText, FileSpreadsheet, AlertCircle, CheckCircle2, Loader2, X, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,8 @@ interface ParsedProduct {
   brand: string | null;
   description: string | null;
   selected?: boolean;
+  isDuplicate?: boolean;
+  duplicateReason?: string;
 }
 
 interface ProductImportDialogProps {
@@ -144,7 +146,7 @@ export function ProductImportDialog({ open, onOpenChange, onImportComplete }: Pr
         throw new Error(data.error);
       }
 
-      const parsed = (data?.products || []).map((p: any) => ({ ...p, selected: true }));
+      const parsed: ParsedProduct[] = (data?.products || []).map((p: any) => ({ ...p, selected: true }));
 
       if (parsed.length === 0) {
         toast({ variant: 'destructive', title: 'Nenhum produto encontrado', description: 'Não foi possível extrair produtos do arquivo. Verifique o formato.' });
@@ -152,9 +154,34 @@ export function ProductImportDialog({ open, onOpenChange, onImportComplete }: Pr
         return;
       }
 
-      setProducts(parsed);
+      // Check for duplicates against existing products in database
+      const { data: existingProducts } = await supabase
+        .from('products')
+        .select('name, ean, product_code');
+
+      const existingNames = new Set((existingProducts || []).map(p => p.name?.toLowerCase().trim()));
+      const existingEans = new Set((existingProducts || []).filter(p => p.ean).map(p => p.ean!.trim()));
+      const existingCodes = new Set((existingProducts || []).filter(p => p.product_code).map(p => p.product_code!.trim()));
+
+      let duplicateCount = 0;
+      const markedProducts = parsed.map(p => {
+        const reasons: string[] = [];
+        if (p.name && existingNames.has(p.name.toLowerCase().trim())) reasons.push('nome');
+        if (p.ean && existingEans.has(p.ean.trim())) reasons.push('EAN');
+        if (p.product_code && existingCodes.has(p.product_code.trim())) reasons.push('código');
+        const isDuplicate = reasons.length > 0;
+        if (isDuplicate) duplicateCount++;
+        return { ...p, isDuplicate, duplicateReason: isDuplicate ? `Duplicado por: ${reasons.join(', ')}` : undefined, selected: !isDuplicate };
+      });
+
+      setProducts(markedProducts);
       setStep('preview');
-      toast({ title: `${parsed.length} produtos encontrados`, description: 'Revise os dados antes de importar.' });
+      
+      if (duplicateCount > 0) {
+        toast({ title: `${parsed.length} produtos encontrados`, description: `${duplicateCount} duplicado(s) detectado(s) e desmarcado(s).` });
+      } else {
+        toast({ title: `${parsed.length} produtos encontrados`, description: 'Nenhum duplicado detectado. Revise os dados antes de importar.' });
+      }
     } catch (err: any) {
       console.error('Parse error:', err);
       toast({ variant: 'destructive', title: 'Erro ao processar', description: err.message || 'Não foi possível ler o arquivo.' });
@@ -302,12 +329,18 @@ export function ProductImportDialog({ open, onOpenChange, onImportComplete }: Pr
 
         {step === 'preview' && (
           <div className="flex-1 min-h-0 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="secondary">{fileName}</Badge>
                 <span className="text-sm text-muted-foreground">
                   {selectedCount} de {products.length} selecionados
                 </span>
+                {products.some(p => p.isDuplicate) && (
+                  <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    {products.filter(p => p.isDuplicate).length} duplicado(s)
+                  </Badge>
+                )}
               </div>
               <Button variant="ghost" size="sm" onClick={() => { resetState(); }}>
                 <X className="h-4 w-4 mr-1" />
@@ -315,7 +348,19 @@ export function ProductImportDialog({ open, onOpenChange, onImportComplete }: Pr
               </Button>
             </div>
 
-            <ScrollArea className="h-[400px] border rounded-lg">
+            {products.some(p => p.isDuplicate) && (
+              <div className="p-3 rounded-lg bg-orange-50 border border-orange-200 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium text-orange-700">Produtos duplicados detectados</p>
+                  <p className="text-orange-600">
+                    Foram encontrados produtos que já existem no sistema (por nome, EAN ou código). Eles foram desmarcados automaticamente. Você pode marcá-los novamente se deseja importar mesmo assim.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <ScrollArea className="h-[380px] border rounded-lg">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -328,12 +373,12 @@ export function ProductImportDialog({ open, onOpenChange, onImportComplete }: Pr
                     <TableHead className="text-right">Preço</TableHead>
                     <TableHead className="text-right">Custo</TableHead>
                     <TableHead className="text-right">Estoque</TableHead>
-                    <TableHead>Un</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {products.map((product, idx) => (
-                    <TableRow key={idx} className={!product.selected ? 'opacity-50' : ''}>
+                    <TableRow key={idx} className={!product.selected ? 'opacity-50' : product.isDuplicate ? 'bg-orange-50/50' : ''}>
                       <TableCell>
                         <Checkbox
                           checked={product.selected}
@@ -346,7 +391,19 @@ export function ProductImportDialog({ open, onOpenChange, onImportComplete }: Pr
                       <TableCell className="text-right text-sm">{formatCurrency(product.price)}</TableCell>
                       <TableCell className="text-right text-sm">{formatCurrency(product.cost_price)}</TableCell>
                       <TableCell className="text-right text-sm">{product.stock}</TableCell>
-                      <TableCell className="text-sm">{product.unit || 'UN'}</TableCell>
+                      <TableCell>
+                        {product.isDuplicate ? (
+                          <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 text-xs whitespace-nowrap" title={product.duplicateReason}>
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Duplicado
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50 text-xs">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Novo
+                          </Badge>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
