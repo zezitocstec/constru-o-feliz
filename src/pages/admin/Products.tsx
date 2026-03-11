@@ -36,6 +36,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { ProductImportDialog } from '@/components/admin/ProductImportDialog';
 
 interface Product {
   id: string;
