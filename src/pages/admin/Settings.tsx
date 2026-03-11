@@ -286,8 +286,7 @@ const Settings = () => {
       setExportLoading(false);
     }
   };
-
-
+  const handleSaveStore = () => {
     toast({
       title: 'Configurações salvas',
       description: 'As configurações da loja foram atualizadas.',
