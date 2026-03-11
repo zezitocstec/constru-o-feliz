@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Store, User, Bell, Shield, UserCog, Trash2, AlertTriangle, RotateCcw, Database, XCircle } from 'lucide-react';
+import { Store, User, Bell, Shield, UserCog, Trash2, AlertTriangle, RotateCcw, Database, XCircle, Download } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -65,6 +65,7 @@ const Settings = () => {
   const [dangerAction, setDangerAction] = useState<string | null>(null);
   const [dangerConfirmText, setDangerConfirmText] = useState('');
   const [dangerLoading, setDangerLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [storeSettings, setStoreSettings] = useState({
     storeName: 'MD Depósito',
     phone: '(85) 99999-9999',
@@ -232,6 +233,59 @@ const Settings = () => {
     }
   };
 
+  const handleExportBackup = async () => {
+    setExportLoading(true);
+    try {
+      const tables = [
+        'products', 'categories', 'customers', 'suppliers', 'supplier_products',
+        'sales', 'sale_items', 'stock_movements', 'product_reviews', 'xml_imports',
+        'pdv_settings', 'audit_log',
+      ] as const;
+
+      const backup: Record<string, any[]> = {};
+      for (const table of tables) {
+        const { data, error } = await supabase.from(table).select('*');
+        if (error) {
+          console.error(`Error exporting ${table}:`, error);
+          backup[table] = [];
+        } else {
+          backup[table] = data || [];
+        }
+      }
+
+      const exportData = {
+        exported_at: new Date().toISOString(),
+        exported_by: user?.email,
+        version: '1.0',
+        data: backup,
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({ title: 'Backup exportado', description: 'O arquivo JSON com todos os dados foi baixado.' });
+
+      await supabase.from('audit_log').insert({
+        action: 'BACKUP_EXPORT',
+        table_name: 'system',
+        record_id: crypto.randomUUID(),
+        changed_by: user?.id,
+        new_values: { exported_at: new Date().toISOString() },
+      });
+    } catch (err: any) {
+      console.error('Export error:', err);
+      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao exportar dados.' });
+    } finally {
+      setExportLoading(false);
+    }
+  };
   const handleSaveStore = () => {
     toast({
       title: 'Configurações salvas',
@@ -473,6 +527,30 @@ const Settings = () => {
 
           <TabsContent value="danger">
             <div className="space-y-4">
+              {/* Backup Card */}
+              <Card className="border-primary/30 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-primary">
+                    <Download className="h-5 w-5" />
+                    Backup dos Dados
+                  </CardTitle>
+                  <CardDescription>
+                    Antes de executar qualquer ação destrutiva, faça um backup completo dos seus dados. O arquivo JSON exportado conterá todos os produtos, vendas, clientes, fornecedores e demais registros.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    onClick={handleExportBackup}
+                    disabled={exportLoading}
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    {exportLoading ? 'Exportando...' : 'Exportar Backup Completo (JSON)'}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Danger Actions Card */}
               <Card className="border-destructive/50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-destructive">
