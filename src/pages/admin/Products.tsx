@@ -493,6 +493,13 @@ const Products = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import Dialog */}
+      <ProductImportDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        onImportComplete={fetchProducts}
+      />
     </AdminLayout>
   );
 };
