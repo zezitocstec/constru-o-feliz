@@ -146,7 +146,7 @@ export function ProductImportDialog({ open, onOpenChange, onImportComplete }: Pr
         throw new Error(data.error);
       }
 
-      const parsed = (data?.products || []).map((p: any) => ({ ...p, selected: true }));
+      const parsed: ParsedProduct[] = (data?.products || []).map((p: any) => ({ ...p, selected: true }));
 
       if (parsed.length === 0) {
         toast({ variant: 'destructive', title: 'Nenhum produto encontrado', description: 'Não foi possível extrair produtos do arquivo. Verifique o formato.' });
@@ -154,9 +154,34 @@ export function ProductImportDialog({ open, onOpenChange, onImportComplete }: Pr
         return;
       }
 
-      setProducts(parsed);
+      // Check for duplicates against existing products in database
+      const { data: existingProducts } = await supabase
+        .from('products')
+        .select('name, ean, product_code');
+
+      const existingNames = new Set((existingProducts || []).map(p => p.name?.toLowerCase().trim()));
+      const existingEans = new Set((existingProducts || []).filter(p => p.ean).map(p => p.ean!.trim()));
+      const existingCodes = new Set((existingProducts || []).filter(p => p.product_code).map(p => p.product_code!.trim()));
+
+      let duplicateCount = 0;
+      const markedProducts = parsed.map(p => {
+        const reasons: string[] = [];
+        if (p.name && existingNames.has(p.name.toLowerCase().trim())) reasons.push('nome');
+        if (p.ean && existingEans.has(p.ean.trim())) reasons.push('EAN');
+        if (p.product_code && existingCodes.has(p.product_code.trim())) reasons.push('código');
+        const isDuplicate = reasons.length > 0;
+        if (isDuplicate) duplicateCount++;
+        return { ...p, isDuplicate, duplicateReason: isDuplicate ? `Duplicado por: ${reasons.join(', ')}` : undefined, selected: !isDuplicate };
+      });
+
+      setProducts(markedProducts);
       setStep('preview');
-      toast({ title: `${parsed.length} produtos encontrados`, description: 'Revise os dados antes de importar.' });
+      
+      if (duplicateCount > 0) {
+        toast({ title: `${parsed.length} produtos encontrados`, description: `${duplicateCount} duplicado(s) detectado(s) e desmarcado(s).` });
+      } else {
+        toast({ title: `${parsed.length} produtos encontrados`, description: 'Nenhum duplicado detectado. Revise os dados antes de importar.' });
+      }
     } catch (err: any) {
       console.error('Parse error:', err);
       toast({ variant: 'destructive', title: 'Erro ao processar', description: err.message || 'Não foi possível ler o arquivo.' });
