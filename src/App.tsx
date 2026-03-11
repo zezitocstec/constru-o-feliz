@@ -18,6 +18,8 @@ import Reports from "./pages/admin/Reports";
 import Customers from "./pages/admin/Customers";
 import Settings from "./pages/admin/Settings";
 import AuditLog from "./pages/admin/AuditLog";
+import XMLImport from "./pages/admin/XMLImport";
+import Suppliers from "./pages/admin/Suppliers";
 import PDVCashier from "./pages/pdv/PDVCashier";
 import PDVHistory from "./pages/pdv/PDVHistory";
 import PDVReport from "./pages/pdv/PDVReport";
