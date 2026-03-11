@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Search, Package } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Package, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { ProductImportDialog } from '@/components/admin/ProductImportDialog';
 
 interface Product {
   id: string;
@@ -70,6 +71,7 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState(emptyProduct);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -233,10 +235,16 @@ const Products = () => {
             <h1 className="text-3xl font-display font-bold">Produtos</h1>
             <p className="text-muted-foreground">Gerencie seu catálogo de produtos</p>
           </div>
-          <Button onClick={() => handleOpenDialog()} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Novo Produto
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsImportOpen(true)} className="gap-2">
+              <Upload className="h-4 w-4" />
+              Importar Produtos
+            </Button>
+            <Button onClick={() => handleOpenDialog()} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Novo Produto
+            </Button>
+          </div>
         </div>
 
         <Card>
@@ -485,6 +493,13 @@ const Products = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import Dialog */}
+      <ProductImportDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        onImportComplete={fetchProducts}
+      />
     </AdminLayout>
   );
 };
