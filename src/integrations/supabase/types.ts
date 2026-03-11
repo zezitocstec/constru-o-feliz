@@ -238,49 +238,67 @@ export type Database = {
         Row: {
           brand: string | null
           category: string | null
+          cfop: string | null
           cost_price: number
           created_at: string
+          cst: string | null
           description: string | null
+          ean: string | null
           id: string
           image_url: string | null
           is_active: boolean
           name: string
+          ncm: string | null
           old_price: number | null
           price: number
+          product_code: string | null
           stock: number
           tag: string | null
+          unit: string | null
           updated_at: string
         }
         Insert: {
           brand?: string | null
           category?: string | null
+          cfop?: string | null
           cost_price?: number
           created_at?: string
+          cst?: string | null
           description?: string | null
+          ean?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
           name: string
+          ncm?: string | null
           old_price?: number | null
           price?: number
+          product_code?: string | null
           stock?: number
           tag?: string | null
+          unit?: string | null
           updated_at?: string
         }
         Update: {
           brand?: string | null
           category?: string | null
+          cfop?: string | null
           cost_price?: number
           created_at?: string
+          cst?: string | null
           description?: string | null
+          ean?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
           name?: string
+          ncm?: string | null
           old_price?: number | null
           price?: number
+          product_code?: string | null
           stock?: number
           tag?: string | null
+          unit?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -476,6 +494,96 @@ export type Database = {
           },
         ]
       }
+      supplier_products: {
+        Row: {
+          created_at: string
+          id: string
+          last_purchase_date: string | null
+          product_id: string
+          supplier_id: string
+          supplier_price: number
+          supplier_product_code: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_purchase_date?: string | null
+          product_id: string
+          supplier_id: string
+          supplier_price?: number
+          supplier_product_code?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_purchase_date?: string | null
+          product_id?: string
+          supplier_id?: string
+          supplier_price?: number
+          supplier_product_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          cep: string | null
+          city: string | null
+          cnpj: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          state: string | null
+          trade_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          cep?: string | null
+          city?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          state?: string | null
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          cep?: string | null
+          city?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          state?: string | null
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -496,6 +604,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      xml_imports: {
+        Row: {
+          id: string
+          imported_at: string
+          imported_by: string | null
+          items_count: number
+          nfe_key: string | null
+          nfe_number: string | null
+          nfe_series: string | null
+          raw_xml: string | null
+          supplier_id: string | null
+          total_value: number
+        }
+        Insert: {
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          items_count?: number
+          nfe_key?: string | null
+          nfe_number?: string | null
+          nfe_series?: string | null
+          raw_xml?: string | null
+          supplier_id?: string | null
+          total_value?: number
+        }
+        Update: {
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          items_count?: number
+          nfe_key?: string | null
+          nfe_number?: string | null
+          nfe_series?: string | null
+          raw_xml?: string | null
+          supplier_id?: string | null
+          total_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xml_imports_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
