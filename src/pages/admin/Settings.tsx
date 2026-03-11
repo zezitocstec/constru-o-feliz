@@ -66,7 +66,7 @@ const Settings = () => {
   const [dangerConfirmText, setDangerConfirmText] = useState('');
   const [dangerLoading, setDangerLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
-  const [dangerLoading, setDangerLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [storeSettings, setStoreSettings] = useState({
     storeName: 'MD Depósito',
     phone: '(85) 99999-9999',
