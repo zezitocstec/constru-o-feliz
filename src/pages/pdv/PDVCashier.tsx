@@ -367,12 +367,16 @@ const PDVCashier = () => {
   };
 
   const subtotal = cart.reduce((s, i) => s + i.unit_price * i.quantity, 0);
-  const totalDiscount = cart.reduce((s, i) => s + i.unit_price * i.quantity * (i.discount / 100), 0);
-  const total = subtotal - totalDiscount;
+  const totalItemDiscount = cart.reduce((s, i) => s + i.unit_price * i.quantity * (i.discount / 100), 0);
+  const afterItemDiscount = subtotal - totalItemDiscount;
+  const globalDiscountValue = afterItemDiscount * (globalDiscount / 100);
+  const globalSurchargeValue = afterItemDiscount * (globalSurcharge / 100);
+  const totalDiscount = totalItemDiscount + globalDiscountValue;
+  const total = afterItemDiscount - globalDiscountValue + globalSurchargeValue;
   const profit = cart.reduce((s, i) => {
     const sub = getItemSubtotal(i);
     return s + (sub - i.cost_price * i.quantity);
-  }, 0);
+  }, 0) - globalDiscountValue + globalSurchargeValue;
   const change = amountPaid ? Math.max(0, parseFloat(amountPaid) - total) : 0;
 
   const totalMixedPayments = mixedPayments.reduce((acc, curr) => acc + curr.amount, 0);
