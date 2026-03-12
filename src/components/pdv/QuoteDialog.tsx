@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Download, ShoppingCart, Trash2, RefreshCw, Plus } from 'lucide-react';
+import { FileText, Download, ShoppingCart, Trash2, RefreshCw, Plus, Pencil } from 'lucide-react';
+import { QuoteEditDialog } from './QuoteEditDialog';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
@@ -75,6 +76,7 @@ export function QuoteDialog({
   const [quotePhone, setQuotePhone] = useState('');
   const [quoteValidDays, setQuoteValidDays] = useState('7');
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
+  const [editingQuote, setEditingQuote] = useState<Quote | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -356,9 +358,13 @@ export function QuoteDialog({
                     </div>
                   )}
                   <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setEditingQuote(quote)}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Editar
+                    </Button>
                     <Button size="sm" className="flex-1" onClick={() => handleImportQuote(quote)}>
                       <ShoppingCart className="h-4 w-4 mr-1" />
-                      Importar no Caixa
+                      Importar
                     </Button>
                     <Button
                       size="sm"
@@ -367,7 +373,7 @@ export function QuoteDialog({
                       disabled={generatingPdf === quote.id}
                     >
                       <Download className="h-4 w-4 mr-1" />
-                      {generatingPdf === quote.id ? 'Gerando...' : 'PDF'}
+                      {generatingPdf === quote.id ? '...' : 'PDF'}
                     </Button>
                     <Button
                       size="sm"
@@ -391,6 +397,18 @@ export function QuoteDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {editingQuote && (
+        <QuoteEditDialog
+          open={!!editingQuote}
+          onOpenChange={(open) => { if (!open) setEditingQuote(null); }}
+          quote={editingQuote}
+          onSaved={loadQuotes}
+          onImport={(items, name, discount, surcharge) => {
+            onImportQuote(items, name, discount, surcharge);
+            onOpenChange(false);
+          }}
+        />
+      )}
     </Dialog>
   );
 }
