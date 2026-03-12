@@ -397,6 +397,18 @@ export function QuoteDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {editingQuote && (
+        <QuoteEditDialog
+          open={!!editingQuote}
+          onOpenChange={(open) => { if (!open) setEditingQuote(null); }}
+          quote={editingQuote}
+          onSaved={loadQuotes}
+          onImport={(items, name, discount, surcharge) => {
+            onImportQuote(items, name, discount, surcharge);
+            onOpenChange(false);
+          }}
+        />
+      )}
     </Dialog>
   );
 }
