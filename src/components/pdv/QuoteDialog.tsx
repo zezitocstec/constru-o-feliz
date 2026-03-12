@@ -358,9 +358,13 @@ export function QuoteDialog({
                     </div>
                   )}
                   <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setEditingQuote(quote)}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Editar
+                    </Button>
                     <Button size="sm" className="flex-1" onClick={() => handleImportQuote(quote)}>
                       <ShoppingCart className="h-4 w-4 mr-1" />
-                      Importar no Caixa
+                      Importar
                     </Button>
                     <Button
                       size="sm"
@@ -369,7 +373,7 @@ export function QuoteDialog({
                       disabled={generatingPdf === quote.id}
                     >
                       <Download className="h-4 w-4 mr-1" />
-                      {generatingPdf === quote.id ? 'Gerando...' : 'PDF'}
+                      {generatingPdf === quote.id ? '...' : 'PDF'}
                     </Button>
                     <Button
                       size="sm"
