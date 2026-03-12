@@ -6,6 +6,7 @@ import Benefits from "@/components/Benefits";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import ChatbotWidget from "@/components/ChatbotWidget";
 
 const Index = () => {
   return (
@@ -20,6 +21,7 @@ const Index = () => {
       </main>
       <Footer />
       <WhatsAppButton />
+      <ChatbotWidget />
     </div>
   );
 };
