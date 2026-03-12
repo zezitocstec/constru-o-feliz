@@ -76,6 +76,7 @@ export function QuoteDialog({
   const [quotePhone, setQuotePhone] = useState('');
   const [quoteValidDays, setQuoteValidDays] = useState('7');
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
+  const [editingQuote, setEditingQuote] = useState<Quote | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
