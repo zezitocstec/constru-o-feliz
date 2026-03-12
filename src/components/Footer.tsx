@@ -117,11 +117,19 @@ const Footer = () => {
             <div className="flex gap-3">
               <div className="bg-background/10 p-2 rounded flex flex-col items-center justify-center flex-1">
                 <ShieldCheck className="w-6 h-6 text-accent mb-1" />
-                <span className="text-[10px] uppercase text-center leading-tight">Compra<br/>Segura</span>
+                <span className="text-[10px] uppercase text-center leading-tight">
+                  Compra
+                  <br />
+                  Segura
+                </span>
               </div>
               <div className="bg-background/10 p-2 rounded flex flex-col items-center justify-center flex-1">
                 <LockKeyhole className="w-6 h-6 text-accent mb-1" />
-                <span className="text-[10px] uppercase text-center leading-tight">Dados<br/>Protegidos</span>
+                <span className="text-[10px] uppercase text-center leading-tight">
+                  Dados
+                  <br />
+                  Protegidos
+                </span>
               </div>
             </div>
           </div>
@@ -133,10 +141,21 @@ const Footer = () => {
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-primary-foreground/60">
             <div className="space-y-1">
-              <p>© 2026 Depósito Construir. Todos os direitos reservados.</p>
+              <p>© 2026 MD Depósito. Todos os direitos reservados.</p>
               <p className="text-xs text-primary-foreground/40">CNPJ: 00.000.000/0001-00</p>
             </div>
-            <p>Desenvolvido por IT.Sega4</p>
+            <p>
+              Desenvolvido por © 2026{" "}
+              <a
+                href="https://it.sega4.com.br/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-white hover:text-brand-red transition-colors font-bold"
+              >
+                IT.Sega4
+              </a>{" "}
+              | Todos os direitos reservados.
+            </p>
           </div>
         </div>
       </div>
