@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Download, ShoppingCart, Trash2, RefreshCw, Plus } from 'lucide-react';
+import { FileText, Download, ShoppingCart, Trash2, RefreshCw, Plus, Pencil } from 'lucide-react';
+import { QuoteEditDialog } from './QuoteEditDialog';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
