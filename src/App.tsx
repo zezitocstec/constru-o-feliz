@@ -18,6 +18,7 @@ import Reports from "./pages/admin/Reports";
 import Customers from "./pages/admin/Customers";
 import Settings from "./pages/admin/Settings";
 import AuditLog from "./pages/admin/AuditLog";
+import ChatHistory from "./pages/admin/ChatHistory";
 import XMLImport from "./pages/admin/XMLImport";
 import Suppliers from "./pages/admin/Suppliers";
 import PDVCashier from "./pages/pdv/PDVCashier";
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="/admin/settings" element={<Settings />} />
               <Route path="/admin/audit" element={<AuditLog />} />
               <Route path="/admin/xml-import" element={<XMLImport />} />
+              <Route path="/admin/chat-history" element={<ChatHistory />} />
               <Route path="/admin/suppliers" element={<Suppliers />} />
               <Route path="/pdv" element={<PDVCashier />} />
               <Route path="/pdv/history" element={<PDVHistory />} />

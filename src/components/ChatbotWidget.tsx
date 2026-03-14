@@ -9,15 +9,28 @@ type Msg = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chatbot`;
 
+function getSessionId() {
+  let id = localStorage.getItem("chat_session_id");
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem("chat_session_id", id);
+  }
+  return id;
+}
+
 async function streamChat({
   messages,
+  conversationId,
+  sessionId,
   onDelta,
   onDone,
   onError,
 }: {
   messages: Msg[];
+  conversationId: string | null;
+  sessionId: string;
   onDelta: (t: string) => void;
-  onDone: () => void;
+  onDone: (convId: string | null) => void;
   onError: (e: string) => void;
 }) {
   const resp = await fetch(CHAT_URL, {
@@ -26,7 +39,7 @@ async function streamChat({
       "Content-Type": "application/json",
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, conversation_id: conversationId, session_id: sessionId }),
   });
 
   if (!resp.ok) {
@@ -34,6 +47,8 @@ async function streamChat({
     onError(err.error || "Erro ao conectar com o assistente");
     return;
   }
+
+  const newConvId = resp.headers.get("X-Conversation-Id") || conversationId;
 
   if (!resp.body) { onError("Sem resposta"); return; }
 
@@ -66,7 +81,7 @@ async function streamChat({
       }
     }
   }
-  onDone();
+  onDone(newConvId);
 }
 
 const ChatbotWidget = () => {
@@ -76,6 +91,8 @@ const ChatbotWidget = () => {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const sessionId = useRef(getSessionId());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -104,9 +121,6 @@ const ChatbotWidget = () => {
       assistantSoFar += chunk;
       setMessages((prev) => {
         const last = prev[prev.length - 1];
-        if (last?.role === "assistant" && prev.length > 1 && assistantSoFar.startsWith(chunk.length > 0 ? assistantSoFar.slice(0, chunk.length) : "")) {
-          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
-        }
         if (last?.role === "assistant" && assistantSoFar.length > chunk.length) {
           return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
         }
@@ -117,8 +131,13 @@ const ChatbotWidget = () => {
     try {
       await streamChat({
         messages: allMsgs,
+        conversationId,
+        sessionId: sessionId.current,
         onDelta: upsert,
-        onDone: () => setLoading(false),
+        onDone: (convId) => {
+          if (convId) setConversationId(convId);
+          setLoading(false);
+        },
         onError: (err) => {
           setMessages((prev) => [...prev, { role: "assistant", content: `Desculpe, ocorreu um erro: ${err}. Tente novamente ou entre em contato pelo WhatsApp (85) 98510-2376.` }]);
           setLoading(false);
@@ -132,7 +151,6 @@ const ChatbotWidget = () => {
 
   return (
     <>
-      {/* Toggle Button */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
@@ -146,10 +164,8 @@ const ChatbotWidget = () => {
         </button>
       )}
 
-      {/* Chat Window */}
       {open && (
         <div className="fixed bottom-24 right-6 z-50 w-[360px] max-w-[calc(100vw-2rem)] h-[500px] max-h-[calc(100vh-8rem)] bg-card rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden animate-fade-in">
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 hero-gradient text-primary-foreground">
             <div className="flex items-center gap-2">
               <Bot className="w-5 h-5" />
@@ -163,7 +179,6 @@ const ChatbotWidget = () => {
             </Button>
           </div>
 
-          {/* Messages */}
           <ScrollArea className="flex-1 p-4" ref={scrollRef as any}>
             <div className="space-y-4">
               {messages.map((msg, i) => (
@@ -173,20 +188,16 @@ const ChatbotWidget = () => {
                       <Bot className="w-4 h-4 text-primary-foreground" />
                     </div>
                   )}
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-br-md"
-                        : "bg-muted text-foreground rounded-bl-md"
-                    }`}
-                  >
+                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground rounded-br-md"
+                      : "bg-muted text-foreground rounded-bl-md"
+                  }`}>
                     {msg.role === "assistant" ? (
                       <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0 [&>ul]:mt-1 [&>ol]:mt-1 [&>p+p]:mt-2">
                         <ReactMarkdown>{msg.content}</ReactMarkdown>
                       </div>
-                    ) : (
-                      msg.content
-                    )}
+                    ) : msg.content}
                   </div>
                   {msg.role === "user" && (
                     <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-1">
@@ -212,12 +223,8 @@ const ChatbotWidget = () => {
             </div>
           </ScrollArea>
 
-          {/* Input */}
           <div className="p-3 border-t border-border">
-            <form
-              onSubmit={(e) => { e.preventDefault(); send(); }}
-              className="flex gap-2"
-            >
+            <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex gap-2">
               <Input
                 ref={inputRef}
                 value={input}

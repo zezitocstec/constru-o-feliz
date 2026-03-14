@@ -15,9 +15,11 @@ serve(async (req) => {
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { messages } = await req.json();
+    const { messages, conversation_id, session_id } = await req.json();
 
     // Fetch products for context
     const { data: products } = await supabase
@@ -72,6 +74,30 @@ ${productList || 'Nenhum produto cadastrado no momento.'}
 - Use emojis com moderação para tornar a conversa amigável
 - Se o cliente pedir um orçamento complexo, sugira que entre em contato pelo WhatsApp ou e-mail`;
 
+    // Save user message to DB
+    let convId = conversation_id;
+    const lastUserMsg = messages[messages.length - 1];
+    
+    if (!convId && session_id) {
+      const { data: conv } = await supabaseAdmin
+        .from("chat_conversations")
+        .insert({ session_id, status: "active", messages_count: 1, last_message_at: new Date().toISOString() })
+        .select("id")
+        .single();
+      convId = conv?.id;
+    } else if (convId) {
+      await supabaseAdmin
+        .from("chat_conversations")
+        .update({ messages_count: messages.length, last_message_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq("id", convId);
+    }
+
+    if (convId && lastUserMsg) {
+      await supabaseAdmin
+        .from("chat_messages")
+        .insert({ conversation_id: convId, role: lastUserMsg.role, content: lastUserMsg.content });
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -109,8 +135,46 @@ ${productList || 'Nenhum produto cadastrado no momento.'}
       });
     }
 
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    // We need to collect the full response to save it, while still streaming
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    const reader = response.body!.getReader();
+    let fullAssistantContent = "";
+
+    (async () => {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          await writer.write(value);
+          
+          // Parse SSE to collect full response
+          const text = new TextDecoder().decode(value);
+          const lines = text.split("\n");
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const json = line.slice(6).trim();
+            if (json === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(json);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) fullAssistantContent += content;
+            } catch {}
+          }
+        }
+      } finally {
+        await writer.close();
+        // Save assistant response
+        if (convId && fullAssistantContent) {
+          await supabaseAdmin
+            .from("chat_messages")
+            .insert({ conversation_id: convId, role: "assistant", content: fullAssistantContent });
+        }
+      }
+    })();
+
+    return new Response(readable, {
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "X-Conversation-Id": convId || "" },
     });
   } catch (e) {
     console.error("chatbot error:", e);
