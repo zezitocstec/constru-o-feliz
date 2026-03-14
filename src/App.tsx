@@ -18,6 +18,7 @@ import Reports from "./pages/admin/Reports";
 import Customers from "./pages/admin/Customers";
 import Settings from "./pages/admin/Settings";
 import AuditLog from "./pages/admin/AuditLog";
+import ChatHistory from "./pages/admin/ChatHistory";
 import XMLImport from "./pages/admin/XMLImport";
 import Suppliers from "./pages/admin/Suppliers";
 import PDVCashier from "./pages/pdv/PDVCashier";
