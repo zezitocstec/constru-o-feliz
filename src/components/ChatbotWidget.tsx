@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Bot, User } from "lucide-react";
+import { X, Send, Bot, User, Phone, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,6 +22,8 @@ async function streamChat({
   messages,
   conversationId,
   sessionId,
+  customerName,
+  customerPhone,
   onDelta,
   onDone,
   onError,
@@ -29,6 +31,8 @@ async function streamChat({
   messages: Msg[];
   conversationId: string | null;
   sessionId: string;
+  customerName?: string;
+  customerPhone?: string;
   onDelta: (t: string) => void;
   onDone: (convId: string | null) => void;
   onError: (e: string) => void;
@@ -39,7 +43,13 @@ async function streamChat({
       "Content-Type": "application/json",
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-    body: JSON.stringify({ messages, conversation_id: conversationId, session_id: sessionId }),
+    body: JSON.stringify({
+      messages,
+      conversation_id: conversationId,
+      session_id: sessionId,
+      customer_name: customerName,
+      customer_phone: customerPhone,
+    }),
   });
 
   if (!resp.ok) {
@@ -86,6 +96,9 @@ async function streamChat({
 
 const ChatbotWidget = () => {
   const [open, setOpen] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [messages, setMessages] = useState<Msg[]>([
     { role: "assistant", content: "Olá! 👋 Sou o assistente virtual do **MD DEPÓSITO**. Como posso ajudar você hoje?\n\nPosso tirar dúvidas sobre produtos, calcular materiais, fazer orçamentos e muito mais!" },
   ]);
@@ -97,14 +110,24 @@ const ChatbotWidget = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
   useEffect(() => {
-    if (open && inputRef.current) inputRef.current.focus();
-  }, [open]);
+    if (open && started && inputRef.current) inputRef.current.focus();
+  }, [open, started]);
+
+  const handleStart = () => {
+    if (!customerName.trim()) return;
+    setStarted(true);
+  };
+
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 2) return digits.length ? `(${digits}` : "";
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
 
   const send = async () => {
     const text = input.trim();
@@ -133,6 +156,8 @@ const ChatbotWidget = () => {
         messages: allMsgs,
         conversationId,
         sessionId: sessionId.current,
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.replace(/\D/g, ""),
         onDelta: upsert,
         onDone: (convId) => {
           if (convId) setConversationId(convId);
@@ -166,6 +191,7 @@ const ChatbotWidget = () => {
 
       {open && (
         <div className="fixed bottom-24 right-6 z-50 w-[360px] max-w-[calc(100vw-2rem)] h-[500px] max-h-[calc(100vh-8rem)] bg-card rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden animate-fade-in">
+          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 hero-gradient text-primary-foreground">
             <div className="flex items-center gap-2">
               <Bot className="w-5 h-5" />
@@ -179,65 +205,111 @@ const ChatbotWidget = () => {
             </Button>
           </div>
 
-          <ScrollArea className="flex-1 p-4" ref={scrollRef as any}>
-            <div className="space-y-4">
-              {messages.map((msg, i) => (
-                <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  {msg.role === "assistant" && (
-                    <div className="w-7 h-7 rounded-full hero-gradient flex items-center justify-center flex-shrink-0 mt-1">
-                      <Bot className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                  )}
-                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                    msg.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-md"
-                      : "bg-muted text-foreground rounded-bl-md"
-                  }`}>
-                    {msg.role === "assistant" ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0 [&>ul]:mt-1 [&>ol]:mt-1 [&>p+p]:mt-2">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
-                    ) : msg.content}
-                  </div>
-                  {msg.role === "user" && (
-                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-1">
-                      <User className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                  )}
+          {!started ? (
+            /* Lead capture form */
+            <div className="flex-1 flex flex-col items-center justify-center p-6 gap-5">
+              <div className="w-16 h-16 rounded-full hero-gradient flex items-center justify-center">
+                <Bot className="w-8 h-8 text-primary-foreground" />
+              </div>
+              <div className="text-center">
+                <h3 className="font-bold text-lg text-foreground">Bem-vindo! 👋</h3>
+                <p className="text-sm text-muted-foreground mt-1">Preencha seus dados para iniciar o atendimento</p>
+              </div>
+              <form
+                onSubmit={(e) => { e.preventDefault(); handleStart(); }}
+                className="w-full space-y-3"
+              >
+                <div className="relative">
+                  <UserRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Seu nome *"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value.slice(0, 100))}
+                    className="pl-9"
+                    required
+                    autoFocus
+                  />
                 </div>
-              ))}
-              {loading && messages[messages.length - 1]?.role === "user" && (
-                <div className="flex gap-2 justify-start">
-                  <div className="w-7 h-7 rounded-full hero-gradient flex items-center justify-center flex-shrink-0 mt-1">
-                    <Bot className="w-4 h-4 text-primary-foreground" />
-                  </div>
-                  <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
-                    <div className="flex gap-1">
-                      <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                    </div>
-                  </div>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="WhatsApp (opcional)"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(formatPhone(e.target.value))}
+                    className="pl-9"
+                    type="tel"
+                  />
                 </div>
-              )}
+                <Button type="submit" className="w-full" disabled={!customerName.trim()}>
+                  Iniciar conversa
+                </Button>
+              </form>
             </div>
-          </ScrollArea>
+          ) : (
+            <>
+              {/* Messages */}
+              <ScrollArea className="flex-1 p-4" ref={scrollRef as any}>
+                <div className="space-y-4">
+                  {messages.map((msg, i) => (
+                    <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                      {msg.role === "assistant" && (
+                        <div className="w-7 h-7 rounded-full hero-gradient flex items-center justify-center flex-shrink-0 mt-1">
+                          <Bot className="w-4 h-4 text-primary-foreground" />
+                        </div>
+                      )}
+                      <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+                        msg.role === "user"
+                          ? "bg-primary text-primary-foreground rounded-br-md"
+                          : "bg-muted text-foreground rounded-bl-md"
+                      }`}>
+                        {msg.role === "assistant" ? (
+                          <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0 [&>ul]:mt-1 [&>ol]:mt-1 [&>p+p]:mt-2">
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          </div>
+                        ) : msg.content}
+                      </div>
+                      {msg.role === "user" && (
+                        <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-1">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {loading && messages[messages.length - 1]?.role === "user" && (
+                    <div className="flex gap-2 justify-start">
+                      <div className="w-7 h-7 rounded-full hero-gradient flex items-center justify-center flex-shrink-0 mt-1">
+                        <Bot className="w-4 h-4 text-primary-foreground" />
+                      </div>
+                      <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
+                        <div className="flex gap-1">
+                          <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                          <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
 
-          <div className="p-3 border-t border-border">
-            <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex gap-2">
-              <Input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Digite sua pergunta..."
-                disabled={loading}
-                className="flex-1 rounded-full text-sm"
-              />
-              <Button type="submit" size="icon" disabled={loading || !input.trim()} className="rounded-full h-10 w-10 flex-shrink-0">
-                <Send className="w-4 h-4" />
-              </Button>
-            </form>
-          </div>
+              {/* Input */}
+              <div className="p-3 border-t border-border">
+                <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex gap-2">
+                  <Input
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Digite sua pergunta..."
+                    disabled={loading}
+                    className="flex-1 rounded-full text-sm"
+                  />
+                  <Button type="submit" size="icon" disabled={loading || !input.trim()} className="rounded-full h-10 w-10 flex-shrink-0">
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </form>
+              </div>
+            </>
+          )}
         </div>
       )}
     </>
