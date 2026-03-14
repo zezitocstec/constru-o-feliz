@@ -150,7 +150,7 @@ const Footer = () => {
                 href="https://it.sega4.com.br/"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-white hover:text-brand-red transition-colors font-bold"
+                className="text-white hover:text-brand-red transition-colors font-bold"
               >
                 IT.Sega4
               </a>{" "}
