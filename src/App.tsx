@@ -53,6 +53,7 @@ const App = () => (
               <Route path="/admin/settings" element={<Settings />} />
               <Route path="/admin/audit" element={<AuditLog />} />
               <Route path="/admin/xml-import" element={<XMLImport />} />
+              <Route path="/admin/chat-history" element={<ChatHistory />} />
               <Route path="/admin/suppliers" element={<Suppliers />} />
               <Route path="/pdv" element={<PDVCashier />} />
               <Route path="/pdv/history" element={<PDVHistory />} />

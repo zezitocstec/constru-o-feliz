@@ -26,6 +26,7 @@ const menuItems = [
   { title: 'Clientes', url: '/admin/customers', icon: Users, group: 'principal' },
   { title: 'Importar XML', url: '/admin/xml-import', icon: FileUp, group: 'principal' },
   { title: 'Fornecedores', url: '/admin/suppliers', icon: Factory, group: 'principal' },
+  { title: 'Chatbot / Leads', url: '/admin/chat-history', icon: MessageCircle, group: 'principal' },
   { title: 'Log de Atividades', url: '/admin/audit', icon: ClipboardList, group: 'sistema' },
   { title: 'Usuários/Permissões', url: '/admin/settings', icon: UserCog, group: 'sistema' },
   { title: 'Configurações', url: '/admin/settings', icon: Settings, group: 'sistema' },
