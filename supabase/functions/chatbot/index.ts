@@ -139,41 +139,49 @@ ${productList || 'Nenhum produto cadastrado no momento.'}
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos insuficientes." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+      console.error("Gemini API error:", response.status, t);
       return new Response(JSON.stringify({ error: "Erro no serviço de IA" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // Transform Gemini SSE to OpenAI-compatible SSE so frontend stays unchanged
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
     const reader = response.body!.getReader();
+    const encoder = new TextEncoder();
     let fullAssistantContent = "";
 
     (async () => {
       try {
+        const decoder = new TextDecoder();
+        let buf = "";
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          await writer.write(value);
-          const text = new TextDecoder().decode(value);
-          for (const line of text.split("\n")) {
+          buf += decoder.decode(value, { stream: true });
+
+          let idx: number;
+          while ((idx = buf.indexOf("\n")) !== -1) {
+            const line = buf.slice(0, idx).trim();
+            buf = buf.slice(idx + 1);
             if (!line.startsWith("data: ")) continue;
             const json = line.slice(6).trim();
             if (json === "[DONE]") continue;
             try {
               const parsed = JSON.parse(json);
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) fullAssistantContent += content;
+              const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (text) {
+                fullAssistantContent += text;
+                // Re-emit as OpenAI-compatible SSE
+                const chunk = JSON.stringify({ choices: [{ delta: { content: text } }] });
+                await writer.write(encoder.encode(`data: ${chunk}\n\n`));
+              }
             } catch {}
           }
         }
+        await writer.write(encoder.encode("data: [DONE]\n\n"));
       } finally {
         await writer.close();
         if (convId && fullAssistantContent) {
