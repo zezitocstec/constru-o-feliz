@@ -11,9 +11,9 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const GEMINI_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
+      throw new Error('GOOGLE_GEMINI_API_KEY is not configured');
     }
 
     const { fileContent, fileType, fileName } = await req.json();
@@ -30,7 +30,7 @@ serve(async (req) => {
       });
     }
 
-    // For PDF and other formats, use AI to extract product data
+    // For PDF and other formats, use Gemini AI to extract product data
     const prompt = `Você é um assistente especializado em extrair dados de produtos a partir de documentos de sistemas de automação comercial brasileiros (como Syspdv, Alterdata, Linx, Totvs, etc).
 
 Analise o conteúdo abaixo e extraia TODOS os produtos encontrados. O documento pode conter listas de produtos com informações como:
@@ -71,28 +71,28 @@ Extraia o máximo de produtos possível. Não invente dados.
 Conteúdo do arquivo "${fileName}":
 ${fileContent}`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.1,
-      }),
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 8192,
+          },
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`AI Gateway error [${response.status}]: ${errorText}`);
+      throw new Error(`Gemini API error [${response.status}]: ${errorText}`);
     }
 
-    const aiResponse = await response.json();
-    const content = aiResponse.choices?.[0]?.message?.content || '';
+    const geminiResponse = await response.json();
+    const content = geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     // Extract JSON from the response
     let jsonStr = content;
