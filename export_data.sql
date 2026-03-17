@@ -129,7 +129,13 @@ INSERT INTO public.sale_items (id, sale_id, product_id, product_name, quantity, 
 -- =====================
 -- PDV SETTINGS
 -- =====================
-INSERT INTO public.pdv_settings (company_name, company_cnpj, company_address, company_phone, company_logo) VALUES ('itsega4PDV', '00.000.000/0001-00', 'Endereço da Empresa, 123 - Cidade/UF', '(00) 0000-0000', NULL);
+INSERT INTO public.pdv_settings (company_name, company_cnpj, company_address, company_phone, company_logo)
+VALUES ('itsega4PDV', '00.000.000/0001-00', 'Endereço da Empresa, 123 - Cidade/UF', '(00) 0000-0000', NULL)
+ON CONFLICT ((true)) DO UPDATE SET
+  company_name = EXCLUDED.company_name,
+  company_cnpj = EXCLUDED.company_cnpj,
+  company_address = EXCLUDED.company_address,
+  company_phone = EXCLUDED.company_phone;
 
 -- =====================
 -- SUPPLIER_PRODUCTS (vínculo fornecedor-produto)
