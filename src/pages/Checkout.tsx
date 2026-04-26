@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import {
   Dialog,
   DialogContent,
@@ -145,7 +145,6 @@ const Checkout = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderId, setOrderId] = useState("");
@@ -161,8 +160,13 @@ const Checkout = () => {
       toast({ variant: "destructive", title: "Informe seu nome" });
       return;
     }
-    if (whatsappOptIn && !customerPhone.trim()) {
-      toast({ variant: "destructive", title: "Informe o telefone para receber as notificações via WhatsApp" });
+    const phoneDigits = customerPhone.replace(/\D/g, "");
+    if (phoneDigits.length < 10) {
+      toast({
+        variant: "destructive",
+        title: "Telefone obrigatório",
+        description: "Informe um telefone válido (com DDD) para receber atualizações do pedido via WhatsApp.",
+      });
       return;
     }
 
@@ -180,14 +184,14 @@ const Checkout = () => {
         .from("sales")
         .insert({
           customer_name: customerName.trim(),
-          customer_phone: customerPhone.trim() || null,
+          customer_phone: customerPhone.trim(),
           total: totalSnapshot,
           profit: 0,
           status: "pending",
           source: "site",
           delivery_type: "delivery",
           tracking_status: "pending",
-          whatsapp_opt_in: whatsappOptIn,
+          whatsapp_opt_in: true,
         })
         .select("id, created_at")
         .single();
@@ -209,6 +213,13 @@ const Checkout = () => {
         .insert(saleItems);
 
       if (itemsError) throw new Error(itemsError.message);
+
+      // Disparar notificação de WhatsApp para o status inicial (pending)
+      supabase.functions
+        .invoke("notify-order-status", {
+          body: { orderId: saleData.id, newStatus: "pending" },
+        })
+        .catch((err) => console.error("Erro ao notificar status inicial:", err));
 
       // Buscar dados da loja (best-effort)
       let storeInfo = {
@@ -428,25 +439,20 @@ const Checkout = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="checkout-phone">Telefone (opcional)</Label>
+              <Label htmlFor="checkout-phone">
+                Telefone / WhatsApp <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="checkout-phone"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 placeholder="(00) 00000-0000"
+                required
                 onKeyDown={(e) => e.key === "Enter" && handleSubmitOrder()}
               />
-            </div>
-
-            <div className="flex items-center space-x-2 pt-1 pb-2">
-              <Checkbox
-                id="whatsapp-opt-in"
-                checked={whatsappOptIn}
-                onCheckedChange={(checked) => setWhatsappOptIn(checked as boolean)}
-              />
-              <Label htmlFor="whatsapp-opt-in" className="text-sm font-normal cursor-pointer leading-none">
-                Desejo receber atualizações do pedido via WhatsApp
-              </Label>
+              <p className="text-xs text-muted-foreground">
+                Você receberá atualizações do pedido (Pendente, Confirmado, Saindo do Depósito, A Caminho, Recebido) via WhatsApp neste número.
+              </p>
             </div>
 
             <div className="bg-muted rounded-lg p-3">

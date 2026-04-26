@@ -124,7 +124,8 @@ const Orders = () => {
         .eq('id', selectedOrder.id);
       if (error) throw error;
 
-      if ((newStatus === 'on_the_way' || newStatus === 'delivered') && selectedOrder.whatsapp_opt_in) {
+      // Notifica o cliente via WhatsApp em qualquer mudança de status
+      if (selectedOrder.customer_phone) {
         supabase.functions.invoke('notify-order-status', {
           body: { orderId: selectedOrder.id, newStatus }
         }).catch(err => console.error("Error invoking notify function:", err));
