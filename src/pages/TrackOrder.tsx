@@ -162,12 +162,7 @@ const TrackOrder = () => {
                       <StatusIcon className={`w-8 h-8 ${status.color}`} />
                       <div>
                         <p className={`font-bold text-lg ${status.color}`}>{status.text}</p>
-                        {order.tracking_status === "out_for_delivery" && (
-                          <p className="text-sm mt-1 text-foreground/80">O entregador já está a caminho do seu endereço.</p>
-                        )}
-                        {order.tracking_status === "delivered" && (
-                          <p className="text-sm mt-1 text-foreground/80">O pedido foi entregue com sucesso!</p>
-                        )}
+                        <p className="text-sm mt-1 text-foreground/80">{status.description}</p>
                       </div>
                     </div>
                   );
