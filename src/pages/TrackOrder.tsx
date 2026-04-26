@@ -65,20 +65,22 @@ const TrackOrder = () => {
 
   const getStatusDisplay = (status: string, tracking_status: string) => {
     if (status === "cancelled" || tracking_status === "cancelled") {
-      return { icon: XCircle, color: "text-destructive", bg: "bg-destructive/10", text: "Cancelado" };
+      return { icon: XCircle, color: "text-destructive", bg: "bg-destructive/10", text: "Cancelado", description: "Seu pedido foi cancelado." };
     }
-    
+
     switch (tracking_status) {
       case "pending":
-        return { icon: Clock, color: "text-yellow-500", bg: "bg-yellow-500/10", text: "Aguardando Confirmação" };
-      case "confirming":
-        return { icon: Package, color: "text-blue-500", bg: "bg-blue-500/10", text: "Em Separação" };
-      case "out_for_delivery":
-        return { icon: Truck, color: "text-purple-500", bg: "bg-purple-500/10", text: "Saiu para Entrega" };
+        return { icon: Clock, color: "text-yellow-500", bg: "bg-yellow-500/10", text: "Pendente", description: "Aguardando confirmação no caixa." };
+      case "confirmed":
+        return { icon: CheckCircle, color: "text-blue-500", bg: "bg-blue-500/10", text: "Confirmado", description: "Pagamento confirmado. Em breve seu pedido será preparado." };
+      case "leaving_warehouse":
+        return { icon: Package, color: "text-orange-500", bg: "bg-orange-500/10", text: "Saindo do Depósito", description: "Seu pedido está sendo preparado para envio." };
+      case "on_the_way":
+        return { icon: Truck, color: "text-purple-500", bg: "bg-purple-500/10", text: "A Caminho", description: "O entregador já está a caminho do seu endereço." };
       case "delivered":
-        return { icon: CheckCircle, color: "text-green-500", bg: "bg-green-500/10", text: "Entregue" };
+        return { icon: CheckCircle, color: "text-green-500", bg: "bg-green-500/10", text: "Recebido", description: "O pedido foi entregue com sucesso!" };
       default:
-        return { icon: Clock, color: "text-muted-foreground", bg: "bg-muted", text: "Pendente" };
+        return { icon: Clock, color: "text-muted-foreground", bg: "bg-muted", text: "Pendente", description: "Aguardando atualização." };
     }
   };
 
@@ -160,12 +162,7 @@ const TrackOrder = () => {
                       <StatusIcon className={`w-8 h-8 ${status.color}`} />
                       <div>
                         <p className={`font-bold text-lg ${status.color}`}>{status.text}</p>
-                        {order.tracking_status === "out_for_delivery" && (
-                          <p className="text-sm mt-1 text-foreground/80">O entregador já está a caminho do seu endereço.</p>
-                        )}
-                        {order.tracking_status === "delivered" && (
-                          <p className="text-sm mt-1 text-foreground/80">O pedido foi entregue com sucesso!</p>
-                        )}
+                        <p className="text-sm mt-1 text-foreground/80">{status.description}</p>
                       </div>
                     </div>
                   );
