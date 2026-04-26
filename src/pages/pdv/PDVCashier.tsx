@@ -430,7 +430,7 @@ const PDVCashier = () => {
         : paymentMethod;
 
       if (activeSiteOrderId) {
-        // Update existing site order to completed
+        // Venda do site finalizada no caixa => marca como CONFIRMADO no rastreamento
         const { error: updateError } = await supabase
           .from('sales')
           .update({
@@ -438,7 +438,7 @@ const PDVCashier = () => {
             total,
             profit,
             status: 'completed',
-            tracking_status: 'completed',
+            tracking_status: 'confirmed',
             source: 'site',
             sale_type: saleType,
           })
