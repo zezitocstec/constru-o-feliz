@@ -439,25 +439,20 @@ const Checkout = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="checkout-phone">Telefone (opcional)</Label>
+              <Label htmlFor="checkout-phone">
+                Telefone / WhatsApp <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="checkout-phone"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 placeholder="(00) 00000-0000"
+                required
                 onKeyDown={(e) => e.key === "Enter" && handleSubmitOrder()}
               />
-            </div>
-
-            <div className="flex items-center space-x-2 pt-1 pb-2">
-              <Checkbox
-                id="whatsapp-opt-in"
-                checked={whatsappOptIn}
-                onCheckedChange={(checked) => setWhatsappOptIn(checked as boolean)}
-              />
-              <Label htmlFor="whatsapp-opt-in" className="text-sm font-normal cursor-pointer leading-none">
-                Desejo receber atualizações do pedido via WhatsApp
-              </Label>
+              <p className="text-xs text-muted-foreground">
+                Você receberá atualizações do pedido (Pendente, Confirmado, Saindo do Depósito, A Caminho, Recebido) via WhatsApp neste número.
+              </p>
             </div>
 
             <div className="bg-muted rounded-lg p-3">
