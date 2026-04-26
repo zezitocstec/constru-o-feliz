@@ -846,7 +846,7 @@ const PDVCashier = () => {
               variant="destructive"
               className="h-14"
               disabled={cart.length === 0}
-              onClick={clearCart}
+              onClick={handleCancelSale}
             >
               <X className="h-5 w-5 mr-2" />
               Cancelar
