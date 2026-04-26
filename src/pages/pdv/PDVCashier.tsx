@@ -419,6 +419,10 @@ const PDVCashier = () => {
           .update({ status: 'cancelled', tracking_status: 'cancelled' })
           .eq('id', activeSiteOrderId);
         if (error) throw error;
+        // Notifica cliente via WhatsApp sobre o cancelamento
+        supabase.functions.invoke('notify-order-status', {
+          body: { orderId: activeSiteOrderId, newStatus: 'cancelled' }
+        }).catch(err => console.error('Erro ao notificar cancelamento:', err));
         toast({ title: 'Pedido cancelado', description: 'O pedido do site foi marcado como cancelado.' });
       } catch (err: any) {
         toast({ variant: 'destructive', title: 'Erro ao cancelar pedido', description: err.message });
