@@ -406,6 +406,28 @@ const PDVCashier = () => {
     setGlobalSurcharge(0);
   };
 
+  const handleCancelSale = async () => {
+    // Se for um pedido vindo do site, cancelar oficialmente o pedido (status -> cancelled)
+    if (activeSiteOrderId) {
+      const confirmCancel = window.confirm(
+        'Este pedido veio do site. Deseja CANCELAR o pedido? O status será atualizado para "Cancelado" e o cliente poderá ser notificado.'
+      );
+      if (!confirmCancel) return;
+      try {
+        const { error } = await supabase
+          .from('sales')
+          .update({ status: 'cancelled', tracking_status: 'cancelled' })
+          .eq('id', activeSiteOrderId);
+        if (error) throw error;
+        toast({ title: 'Pedido cancelado', description: 'O pedido do site foi marcado como cancelado.' });
+      } catch (err: any) {
+        toast({ variant: 'destructive', title: 'Erro ao cancelar pedido', description: err.message });
+        return;
+      }
+    }
+    clearCart();
+  };
+
   const handleImportQuote = (items: CartItem[], name: string, discount: number, surcharge: number) => {
     setCart(items);
     setCustomerName(name);
@@ -430,7 +452,7 @@ const PDVCashier = () => {
         : paymentMethod;
 
       if (activeSiteOrderId) {
-        // Update existing site order to completed
+        // Venda do site finalizada no caixa => marca como CONFIRMADO no rastreamento
         const { error: updateError } = await supabase
           .from('sales')
           .update({
@@ -438,7 +460,7 @@ const PDVCashier = () => {
             total,
             profit,
             status: 'completed',
-            tracking_status: 'completed',
+            tracking_status: 'confirmed',
             source: 'site',
             sale_type: saleType,
           })
@@ -824,7 +846,7 @@ const PDVCashier = () => {
               variant="destructive"
               className="h-14"
               disabled={cart.length === 0}
-              onClick={clearCart}
+              onClick={handleCancelSale}
             >
               <X className="h-5 w-5 mr-2" />
               Cancelar
