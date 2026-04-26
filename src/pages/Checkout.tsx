@@ -160,8 +160,13 @@ const Checkout = () => {
       toast({ variant: "destructive", title: "Informe seu nome" });
       return;
     }
-    if (whatsappOptIn && !customerPhone.trim()) {
-      toast({ variant: "destructive", title: "Informe o telefone para receber as notificações via WhatsApp" });
+    const phoneDigits = customerPhone.replace(/\D/g, "");
+    if (phoneDigits.length < 10) {
+      toast({
+        variant: "destructive",
+        title: "Telefone obrigatório",
+        description: "Informe um telefone válido (com DDD) para receber atualizações do pedido via WhatsApp.",
+      });
       return;
     }
 
@@ -179,14 +184,14 @@ const Checkout = () => {
         .from("sales")
         .insert({
           customer_name: customerName.trim(),
-          customer_phone: customerPhone.trim() || null,
+          customer_phone: customerPhone.trim(),
           total: totalSnapshot,
           profit: 0,
           status: "pending",
           source: "site",
           delivery_type: "delivery",
           tracking_status: "pending",
-          whatsapp_opt_in: whatsappOptIn,
+          whatsapp_opt_in: true,
         })
         .select("id, created_at")
         .single();
