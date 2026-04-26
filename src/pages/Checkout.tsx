@@ -214,6 +214,13 @@ const Checkout = () => {
 
       if (itemsError) throw new Error(itemsError.message);
 
+      // Disparar notificação de WhatsApp para o status inicial (pending)
+      supabase.functions
+        .invoke("notify-order-status", {
+          body: { orderId: saleData.id, newStatus: "pending" },
+        })
+        .catch((err) => console.error("Erro ao notificar status inicial:", err));
+
       // Buscar dados da loja (best-effort)
       let storeInfo = {
         name: "Loja",
