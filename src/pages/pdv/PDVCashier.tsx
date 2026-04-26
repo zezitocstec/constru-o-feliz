@@ -472,6 +472,10 @@ const PDVCashier = () => {
 
         if (updateError) throw new Error(`Erro ao atualizar pedido: ${updateError.message}`);
         saleId = activeSiteOrderId;
+        // Notifica cliente via WhatsApp que o pedido foi confirmado no caixa
+        supabase.functions.invoke('notify-order-status', {
+          body: { orderId: activeSiteOrderId, newStatus: 'confirmed' }
+        }).catch(err => console.error('Erro ao notificar confirmação:', err));
       } else {
         // Insert new PDV sale
         const { data: saleData, error: saleError } = await supabase
