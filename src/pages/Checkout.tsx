@@ -145,7 +145,6 @@ const Checkout = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderId, setOrderId] = useState("");
