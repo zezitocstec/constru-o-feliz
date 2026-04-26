@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Package, CheckCircle, Truck, Clock, XCircle, ArrowLeft, Loader2 } from "lucide-react";
+import { Search, Package, ArrowLeft, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,11 @@ import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  resolveTrackingStep,
+  getStepIndex,
+  TRACKING_FLOW,
+} from "@/utils/trackingStatus";
 
 const TrackOrder = () => {
   const navigate = useNavigate();
@@ -28,7 +33,6 @@ const TrackOrder = () => {
     setIsLoading(true);
     setOrder(null);
     try {
-      // Query recent site orders
       const { data, error } = await supabase
         .from("sales")
         .select("id, status, tracking_status, created_at, total")
@@ -37,8 +41,7 @@ const TrackOrder = () => {
 
       if (error) throw error;
 
-      // Find the specific order by ID prefix
-      const foundOrder = data?.find(o => 
+      const foundOrder = data?.find((o) =>
         o.id.toUpperCase().startsWith(orderId.trim().toUpperCase())
       );
 
@@ -63,31 +66,17 @@ const TrackOrder = () => {
     }
   };
 
-  const getStatusDisplay = (status: string, tracking_status: string) => {
-    if (status === "cancelled" || tracking_status === "cancelled") {
-      return { icon: XCircle, color: "text-destructive", bg: "bg-destructive/10", text: "Cancelado", description: "Seu pedido foi cancelado." };
-    }
-
-    switch (tracking_status) {
-      case "pending":
-        return { icon: Clock, color: "text-yellow-500", bg: "bg-yellow-500/10", text: "Pendente", description: "Aguardando confirmação no caixa." };
-      case "confirmed":
-        return { icon: CheckCircle, color: "text-blue-500", bg: "bg-blue-500/10", text: "Confirmado", description: "Pagamento confirmado. Em breve seu pedido será preparado." };
-      case "leaving_warehouse":
-        return { icon: Package, color: "text-orange-500", bg: "bg-orange-500/10", text: "Saindo do Depósito", description: "Seu pedido está sendo preparado para envio." };
-      case "on_the_way":
-        return { icon: Truck, color: "text-purple-500", bg: "bg-purple-500/10", text: "A Caminho", description: "O entregador já está a caminho do seu endereço." };
-      case "delivered":
-        return { icon: CheckCircle, color: "text-green-500", bg: "bg-green-500/10", text: "Recebido", description: "O pedido foi entregue com sucesso!" };
-      default:
-        return { icon: Clock, color: "text-muted-foreground", bg: "bg-muted", text: "Pendente", description: "Aguardando atualização." };
-    }
-  };
+  const currentStep = order
+    ? resolveTrackingStep(order.status, order.tracking_status)
+    : null;
+  const currentIndex = currentStep ? getStepIndex(currentStep) : -1;
+  const isCancelled = currentStep?.key === "cancelled";
+  const isUnknown = currentStep?.key === "unknown";
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      
+
       <main className="flex-1 container mx-auto px-4 py-12">
         <Button variant="ghost" className="mb-6" onClick={() => navigate("/")}>
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -133,7 +122,7 @@ const TrackOrder = () => {
             </form>
           </div>
 
-          {order && (
+          {order && currentStep && (
             <div className="bg-card rounded-xl border p-6 shadow-sm animate-fade-in">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6 border-b">
                 <div>
@@ -152,22 +141,69 @@ const TrackOrder = () => {
 
               <div className="mb-6">
                 <p className="text-sm text-muted-foreground mb-4">Status atual</p>
-                
+
                 {(() => {
-                  const status = getStatusDisplay(order.status, order.tracking_status);
-                  const StatusIcon = status.icon;
-                  
+                  const StatusIcon = currentStep.icon;
                   return (
-                    <div className={`flex items-center gap-4 p-4 rounded-lg ${status.bg}`}>
-                      <StatusIcon className={`w-8 h-8 ${status.color}`} />
+                    <div className={`flex items-center gap-4 p-4 rounded-lg ${currentStep.bg}`}>
+                      <StatusIcon className={`w-8 h-8 ${currentStep.color}`} />
                       <div>
-                        <p className={`font-bold text-lg ${status.color}`}>{status.text}</p>
-                        <p className="text-sm mt-1 text-foreground/80">{status.description}</p>
+                        <p className={`font-bold text-lg ${currentStep.color}`}>
+                          {currentStep.text}
+                        </p>
+                        <p className="text-sm mt-1 text-foreground/80">
+                          {currentStep.description}
+                        </p>
                       </div>
                     </div>
                   );
                 })()}
               </div>
+
+              {/* Linha do tempo - oculta em cancelado/desconhecido */}
+              {!isCancelled && !isUnknown && (
+                <div className="mb-6">
+                  <p className="text-sm text-muted-foreground mb-4">Progresso</p>
+                  <ol className="relative border-l-2 border-border ml-3 space-y-4">
+                    {TRACKING_FLOW.map((step, idx) => {
+                      const StepIcon = step.icon;
+                      const reached = idx <= currentIndex;
+                      const isCurrent = idx === currentIndex;
+                      return (
+                        <li key={step.key} className="ml-6">
+                          <span
+                            className={`absolute -left-[14px] flex items-center justify-center w-7 h-7 rounded-full ring-4 ring-card ${
+                              reached ? step.bg : "bg-muted"
+                            }`}
+                          >
+                            <StepIcon
+                              className={`w-4 h-4 ${
+                                reached ? step.color : "text-muted-foreground"
+                              }`}
+                            />
+                          </span>
+                          <p
+                            className={`font-medium ${
+                              isCurrent
+                                ? step.color
+                                : reached
+                                ? "text-foreground"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {step.text}
+                          </p>
+                          {isCurrent && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {step.description}
+                            </p>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+              )}
 
               <div className="flex justify-between items-center pt-4 border-t">
                 <span className="text-muted-foreground">Valor Total:</span>
@@ -179,7 +215,7 @@ const TrackOrder = () => {
           )}
         </div>
       </main>
-      
+
       <Footer />
       <WhatsAppButton />
     </div>
