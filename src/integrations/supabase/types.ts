@@ -236,7 +236,11 @@ export type Database = {
           company_name: string
           company_phone: string
           created_at: string
+          daily_summary_enabled: boolean
+          daily_summary_last_sent_at: string | null
           id: string
+          manager_email: string | null
+          manager_whatsapp: string | null
           updated_at: string
         }
         Insert: {
@@ -246,7 +250,11 @@ export type Database = {
           company_name?: string
           company_phone?: string
           created_at?: string
+          daily_summary_enabled?: boolean
+          daily_summary_last_sent_at?: string | null
           id?: string
+          manager_email?: string | null
+          manager_whatsapp?: string | null
           updated_at?: string
         }
         Update: {
@@ -256,7 +264,11 @@ export type Database = {
           company_name?: string
           company_phone?: string
           created_at?: string
+          daily_summary_enabled?: boolean
+          daily_summary_last_sent_at?: string | null
           id?: string
+          manager_email?: string | null
+          manager_whatsapp?: string | null
           updated_at?: string
         }
         Relationships: []
