@@ -60,6 +60,7 @@ const Reports = () => {
         .from('sales')
         .select('*')
         .gte('created_at', startDate.toISOString())
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: true });
 
       if (sales) {

@@ -40,9 +40,10 @@ const PDVReport = () => {
 
     const { data: sales } = await supabase
       .from('sales')
-      .select('total, profit')
+      .select('total, profit, status')
       .gte('created_at', startDate.toISOString())
-      .eq('delivery_type', 'local');
+      .eq('delivery_type', 'local')
+      .neq('status', 'cancelled');
 
     if (sales) {
       const revenue = sales.reduce((s, sale) => s + Number(sale.total), 0);
