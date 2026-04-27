@@ -1,4 +1,4 @@
-import { Monitor, History, BarChart3, Settings, LogOut, Store, Users } from 'lucide-react';
+import { Monitor, History, BarChart3, Settings, LogOut, Store, Users, XCircle } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 const menuItems = [
   { title: 'Frente de Caixa', url: '/pdv', icon: Monitor, group: 'principal' },
   { title: 'Histórico de Vendas', url: '/pdv/history', icon: History, group: 'principal' },
+  { title: 'Vendas Canceladas', url: '/pdv/cancelled', icon: XCircle, group: 'principal' },
   { title: 'Clientes', url: '/pdv/customers', icon: Users, group: 'principal' },
   { title: 'Relatório do Caixa', url: '/pdv/report', icon: BarChart3, group: 'principal' },
   { title: 'Configurações', url: '/pdv/settings', icon: Settings, group: 'sistema' },

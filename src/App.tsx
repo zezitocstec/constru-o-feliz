@@ -23,6 +23,7 @@ import XMLImport from "./pages/admin/XMLImport";
 import Suppliers from "./pages/admin/Suppliers";
 import PDVCashier from "./pages/pdv/PDVCashier";
 import PDVHistory from "./pages/pdv/PDVHistory";
+import PDVCancelled from "./pages/pdv/PDVCancelled";
 import PDVReport from "./pages/pdv/PDVReport";
 import PDVCustomers from "./pages/pdv/PDVCustomers";
 import PDVSettings from "./pages/pdv/PDVSettings";
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="/admin/suppliers" element={<Suppliers />} />
               <Route path="/pdv" element={<PDVCashier />} />
               <Route path="/pdv/history" element={<PDVHistory />} />
+              <Route path="/pdv/cancelled" element={<PDVCancelled />} />
               <Route path="/pdv/report" element={<PDVReport />} />
               <Route path="/pdv/customers" element={<PDVCustomers />} />
               <Route path="/pdv/settings" element={<PDVSettings />} />
