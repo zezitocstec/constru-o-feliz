@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Search, Eye, XCircle, Globe, Monitor } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { format } from 'date-fns';
+import { Search, Eye, XCircle, Globe, Monitor, FileDown, FileText, CalendarIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PDVLayout } from '@/components/pdv/PDVLayout';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -12,9 +15,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import {
-  Tabs, TabsContent, TabsList, TabsTrigger,
-} from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
@@ -31,10 +37,13 @@ interface SaleRow {
 }
 
 const PDVCancelled = () => {
+  const { toast } = useToast();
   const [sales, setSales] = useState<SaleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [tab, setTab] = useState<'all' | 'pdv' | 'site'>('all');
+  const [origin, setOrigin] = useState<'all' | 'pdv' | 'site'>('all');
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
   const [selected, setSelected] = useState<SaleRow | null>(null);
   const [items, setItems] = useState<any[]>([]);
 
@@ -49,7 +58,7 @@ const PDVCancelled = () => {
       .select('*')
       .eq('status', 'cancelled')
       .order('created_at', { ascending: false })
-      .limit(200);
+      .limit(500);
     setSales((data as any) || []);
     setLoading(false);
   };
@@ -60,20 +69,106 @@ const PDVCancelled = () => {
     setItems(data || []);
   };
 
-  const filtered = sales.filter(s => {
-    if (tab !== 'all' && s.source !== tab) return false;
-    const q = search.toLowerCase();
-    if (!q) return true;
-    return (
-      s.customer_name?.toLowerCase().includes(q) ||
-      s.id.toLowerCase().includes(q) ||
-      s.customer_phone?.toLowerCase().includes(q)
-    );
-  });
+  const filtered = useMemo(() => {
+    return sales.filter(s => {
+      if (origin !== 'all' && (origin === 'site' ? s.source !== 'site' : s.source === 'site')) return false;
+      if (startDate && new Date(s.created_at) < new Date(startDate.setHours(0, 0, 0, 0))) return false;
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (new Date(s.created_at) > end) return false;
+      }
+      const q = search.toLowerCase();
+      if (!q) return true;
+      return (
+        s.customer_name?.toLowerCase().includes(q) ||
+        s.id.toLowerCase().includes(q) ||
+        s.customer_phone?.toLowerCase().includes(q)
+      );
+    });
+  }, [sales, origin, search, startDate, endDate]);
 
   const totalCancelled = filtered.reduce((acc, s) => acc + Number(s.total || 0), 0);
-  const countSite = sales.filter(s => s.source === 'site').length;
-  const countPdv = sales.filter(s => s.source !== 'site').length;
+  const countSite = filtered.filter(s => s.source === 'site').length;
+  const countPdv = filtered.filter(s => s.source !== 'site').length;
+
+  const clearFilters = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setOrigin('all');
+    setSearch('');
+  };
+
+  const periodLabel = () => {
+    if (startDate && endDate) return `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`;
+    if (startDate) return `desde ${format(startDate, 'dd/MM/yyyy')}`;
+    if (endDate) return `até ${format(endDate, 'dd/MM/yyyy')}`;
+    return 'todos os períodos';
+  };
+
+  const originLabel = origin === 'all' ? 'Todas as origens' : origin === 'site' ? 'Site' : 'Caixa';
+
+  const exportCSV = () => {
+    if (filtered.length === 0) {
+      toast({ variant: 'destructive', title: 'Nada para exportar' });
+      return;
+    }
+    const headers = ['Data', 'Origem', 'Cliente', 'Telefone', 'Pagamento', 'Total', 'ID'];
+    const rows = filtered.map(s => [
+      new Date(s.created_at).toLocaleString('pt-BR'),
+      s.source === 'site' ? 'Site' : 'Caixa',
+      s.customer_name || 'Consumidor',
+      s.customer_phone || '',
+      s.payment_method || '',
+      Number(s.total).toFixed(2).replace('.', ','),
+      s.id,
+    ]);
+    const csv = [headers, ...rows]
+      .map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';'))
+      .join('\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vendas-canceladas-${format(new Date(), 'yyyyMMdd-HHmm')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: 'CSV exportado', description: `${filtered.length} registros.` });
+  };
+
+  const exportPDF = () => {
+    if (filtered.length === 0) {
+      toast({ variant: 'destructive', title: 'Nada para exportar' });
+      return;
+    }
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text('Relatório de Vendas Canceladas', 14, 18);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Período: ${periodLabel()}  •  Origem: ${originLabel}`, 14, 26);
+    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 32);
+
+    autoTable(doc, {
+      startY: 40,
+      head: [['Data', 'Origem', 'Cliente', 'Telefone', 'Pagamento', 'Total']],
+      body: filtered.map(s => [
+        new Date(s.created_at).toLocaleString('pt-BR'),
+        s.source === 'site' ? 'Site' : 'Caixa',
+        s.customer_name || 'Consumidor',
+        s.customer_phone || '-',
+        s.payment_method || '-',
+        formatCurrency(Number(s.total)),
+      ]),
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [220, 38, 38] },
+      foot: [['', '', '', '', 'Total cancelado:', formatCurrency(totalCancelled)]],
+      footStyles: { fillColor: [243, 244, 246], textColor: 0, fontStyle: 'bold' },
+    });
+
+    doc.save(`vendas-canceladas-${format(new Date(), 'yyyyMMdd-HHmm')}.pdf`);
+    toast({ title: 'PDF exportado', description: `${filtered.length} registros.` });
+  };
 
   return (
     <PDVLayout>
@@ -120,23 +215,67 @@ const PDVCancelled = () => {
         </div>
 
         <Card>
-          <CardHeader className="py-3">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full sm:w-auto">
-                <TabsList>
-                  <TabsTrigger value="all">Todos</TabsTrigger>
-                  <TabsTrigger value="pdv">Caixa</TabsTrigger>
-                  <TabsTrigger value="site">Site</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              <div className="relative flex-1 sm:max-w-sm sm:ml-auto">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar cliente, telefone ou ID..."
-                  className="pl-9"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                />
+          <CardHeader className="space-y-3">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Origem</Label>
+                <Tabs value={origin} onValueChange={(v) => setOrigin(v as any)}>
+                  <TabsList>
+                    <TabsTrigger value="all">Todos</TabsTrigger>
+                    <TabsTrigger value="pdv">Caixa</TabsTrigger>
+                    <TabsTrigger value="site">Site</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Data inicial</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn('w-[160px] justify-start text-left font-normal', !startDate && 'text-muted-foreground')}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, 'dd/MM/yyyy') : 'Selecionar'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className={cn('p-3 pointer-events-auto')} />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Data final</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn('w-[160px] justify-start text-left font-normal', !endDate && 'text-muted-foreground')}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, 'dd/MM/yyyy') : 'Selecionar'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus className={cn('p-3 pointer-events-auto')} />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <Button variant="ghost" size="sm" onClick={clearFilters}>Limpar</Button>
+
+              <div className="ml-auto flex items-end gap-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar..."
+                    className="pl-9 w-56"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                  />
+                </div>
+                <Button variant="outline" size="sm" onClick={exportCSV} className="gap-2">
+                  <FileDown className="h-4 w-4" /> CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={exportPDF} className="gap-2">
+                  <FileText className="h-4 w-4" /> PDF
+                </Button>
               </div>
             </div>
           </CardHeader>
